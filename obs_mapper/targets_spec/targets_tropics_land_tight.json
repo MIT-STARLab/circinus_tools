@@ -1,0 +1,189 @@
+{
+    "rectangles": [
+        {
+            "name": "example",
+            "lat_bottom_deg": -10,
+            "lat_upper_deg": 10,
+            "lon_left_deg": -70,
+            "lon_right_deg": -50,
+            "spec_option": "ignore",
+            "num_lat_points": 4,
+            "num_lon_points": 3,
+            "disclude_points": [0,7,5]
+        }, 
+        {
+            "name": "lower US upper Mexico",
+            "lat_bottom_deg": 24,
+            "lat_upper_deg": 30.5,
+            "lon_left_deg": -114,
+            "lon_right_deg": -78,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "Mexico and Caribbean islands",
+            "lat_bottom_deg": 15.5,
+            "lat_upper_deg": 24,
+            "lon_left_deg": -107,
+            "lon_right_deg": -66,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 5,
+            "disclude_points": []
+        },
+        {
+            "name": "Panama and upper South America",
+            "lat_bottom_deg": 7,
+            "lat_upper_deg": 15.5,
+            "lon_left_deg": -92,
+            "lon_right_deg": -58,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "upper mid South America",
+            "lat_bottom_deg": -18,
+            "lat_upper_deg": 7,
+            "lon_left_deg": -81,
+            "lon_right_deg": -35,
+            "spec_option": "points",
+            "num_lat_points": 5,
+            "num_lon_points": 6,
+            "disclude_points": []
+        },
+        {
+            "name": "lower mid South America",
+            "lat_bottom_deg": -30,
+            "lat_upper_deg": -18,
+            "lon_left_deg": -72,
+            "lon_right_deg": -40,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "sub-Saharan Africa",
+            "lat_bottom_deg": 2.7,
+            "lat_upper_deg": 15.3,
+            "lon_left_deg": -18,
+            "lon_right_deg": 52,
+            "spec_option": "points",
+            "num_lat_points": 3,
+            "num_lon_points": 7,
+            "disclude_points": []
+        },
+        {
+            "name": "lower Africa",
+            "lat_bottom_deg": -30,
+            "lat_upper_deg": 2.7,
+            "lon_left_deg": 10,
+            "lon_right_deg": 42,
+            "spec_option": "points",
+            "num_lat_points": 6,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "Madagascar",
+            "lat_bottom_deg": -27,
+            "lat_upper_deg": -11,
+            "lon_left_deg": 42.3,
+            "lon_right_deg": 51,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 1,
+            "disclude_points": []
+        },
+        {
+            "name": "upper Arabian Sea and coast",
+            "lat_bottom_deg": 20,
+            "lat_upper_deg": 30,
+            "lon_left_deg": 47,
+            "lon_right_deg": 71,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 2,
+            "disclude_points": []
+        },
+        {
+            "name": "India",
+            "lat_bottom_deg": 5,
+            "lat_upper_deg": 30,
+            "lon_left_deg": 71,
+            "lon_right_deg": 85,
+            "spec_option": "points",
+            "num_lat_points": 4,
+            "num_lon_points": 2,
+            "disclude_points": []
+        },
+        {
+            "name": "upper Southeast Asia",
+            "lat_bottom_deg": 19,
+            "lat_upper_deg": 30,
+            "lon_left_deg": 85,
+            "lon_right_deg": 123,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "lower Southeast Asia",
+            "lat_bottom_deg": -10,
+            "lat_upper_deg": 19,
+            "lon_left_deg": 91,
+            "lon_right_deg": 129,
+            "spec_option": "points",
+            "num_lat_points": 4,
+            "num_lon_points": 5,
+            "disclude_points": []
+        },
+        {
+            "name": "Papua New Guinea and islands",
+            "lat_bottom_deg": -12,
+            "lat_upper_deg": 0,
+            "lon_left_deg": 129,
+            "lon_right_deg": 162,
+            "spec_option": "points",
+            "num_lat_points": 2,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "upper Australia",
+            "lat_bottom_deg": -20,
+            "lat_upper_deg": -12,
+            "lon_left_deg": 120,
+            "lon_right_deg": 150,
+            "spec_option": "points",
+            "num_lat_points": 1,
+            "num_lon_points": 4,
+            "disclude_points": []
+        },
+        {
+            "name": "upper latitude bound",
+            "lat_bottom_deg": 30,
+            "lat_upper_deg": 32,
+            "lon_left_deg": -180,
+            "lon_right_deg": 180,
+            "spec_option": "solid"
+        },
+        {
+            "name": "lower latitude bound",
+            "lat_bottom_deg": -32,
+            "lat_upper_deg": -30,
+            "lon_left_deg": -180,
+            "lon_right_deg": 180,
+            "spec_option": "solid"
+        }
+    ],
+    "points": [
+        {"name": "example1", "spec_option": "ignore", "lat": -50, "lon": 30},
+        {"name": "example2", "spec_option": "ignore", "lat": -20, "lon": 60}
+    ]
+}
