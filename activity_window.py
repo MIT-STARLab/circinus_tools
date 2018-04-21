@@ -49,6 +49,11 @@ class ActivityWindow(object):
             return self._center_cache
 
     @property
+    def duration(self):
+        
+        return self.end - self.start
+
+    @property
     def ave_data_rate(self):
         #  adding this try except to deal with already pickled activity Windows
         # TODO: remove this error checking later once all code solidified?
