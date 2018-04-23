@@ -19,6 +19,9 @@ class ActivityWindow(object):
 
         self.start = start
         self.end = end
+        # preserving a copy of original start/end for use later
+        self.original_start = start
+        self.original_end = end
         self.window_ID = window_ID
         self.data_vol = const.UNASSIGNED
         self.scheduled_data_vol = const.UNASSIGNED
