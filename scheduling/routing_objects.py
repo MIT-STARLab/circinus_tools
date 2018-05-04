@@ -43,13 +43,16 @@ class RoutingObjectID():
     # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
     def __hash__(self):
         # xor the components together
-        return self.creator_agent_ID ^ self.creator_agent_ID_index
+        return hash(self.creator_agent_ID) ^ hash(self.creator_agent_ID_index)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __repr__(self):
-        return "%s,%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
+        if type(self.creator_agent_ID) == str:
+            return "'%s',%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
+        else: 
+            return "%s,%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
 
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects
@@ -260,6 +263,8 @@ class DataRoute():
 
         self.dv_epsilon = dv_epsilon
 
+    def set_id(self,agent_ID,agent_ID_index):
+        self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
     def __copy__(self):
         newone = type(self)(None,None,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier,ro_ID=copy(self.ID))
