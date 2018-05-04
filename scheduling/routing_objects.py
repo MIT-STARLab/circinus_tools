@@ -24,6 +24,33 @@ def date_string(dt):
 
     # multi:  there are forks and convergences in the route; data can split out from one window to travel through multiple windows and converge back on another window.  temporal consistency must still be maintained though
 
+class RoutingObjectID():
+
+    def __init__(self,creator_agent_ID,creator_agent_ID_index):
+        """constructor
+        
+        [description]
+        :param creator_agent_ID: the ID of the sim agent that created the route with this ID (e.g. ground network (GP), satellite)
+        :type creator_agent_ID: str
+        :param creator_agent_ID_index: index of the route for the creator agent. This generally should increase by one every time a new route object is created
+        :type creator_agent_ID_index: int
+        """
+        self.creator_agent_ID = creator_agent_ID
+        self.creator_agent_ID_index = creator_agent_ID_index
+
+    # See:
+    # https://docs.python.org/3.4/reference/datamodel.html#object.__hash__
+    # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
+    def __hash__(self):
+        # xor the components together
+        return self.creator_agent_ID ^ self.creator_agent_ID_index
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __repr__(self):
+        return "%s,%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
+
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects
     
@@ -32,8 +59,13 @@ class DataMultiRoute():
     note that it is still valid to multiply the entire data volume of this route by a single utilization number from 0 to 1 to represent how much data volume is used from this multi-route. When constructing the multi-route, we ensure that no data volume from any given activity window is spoken for by multiple DataRoute objects within the multi-route; i.e.,  It's perfectly allowable to schedule all of the data routes within from a throughput perspective. the utilization number effectively carries through to multiply the data volumes of the individual data route objects.
     """
 
-    def __init__(self,ID,data_routes,dv_epsilon=1e-5):
-        self.ID = ID
+    def __init__(self,agent_ID,agent_ID_index,data_routes,dv_epsilon=1e-5,ro_ID=None):
+
+        if ro_ID:
+            self.ID = ro_ID
+        else:
+            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+
         #  all of the "simple"  data route objects contained within this multi-route
         self.data_routes = data_routes
         #  this map holds the amount of data volume we have allocated to each of the data routes within this multi-route. we initially create it with all of the data volume from the initializer data routes, but it is not necessarily the case that the data volume numbers within this dict will be the same as the data volume numbers within the individual data route objects
@@ -46,6 +78,12 @@ class DataMultiRoute():
         for dr in data_routes:
             if not type(dr) == DataRoute:
                 raise RuntimeError('only data route objects should be used to construct a new data multi-route')
+
+    def __hash__(self):
+        return hash(self.ID)
+
+    def __eq__(self, other):
+        return self.ID == other.ID
 
     @property
     def data_vol(self):
@@ -108,7 +146,7 @@ class DataMultiRoute():
         return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
 
     def __repr__(self):
-        return  '(DataMultiRoute %d, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
+        return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
 
     def validate (self,time_option='start_end'):
 
@@ -196,9 +234,12 @@ class DataRoute():
 
     # note this route is simple:  there are no forks in the route; there is a simple linear path from an observation to a downlink through which data flows. all windows must be in temporal order.
 
-    def __init__(self, ID, route  =[], window_start_sats={},dv=0,dv_epsilon=1e-5,obs_dv_multiplier=1):
+    def __init__(self, agent_ID,agent_ID_index, route  =[], window_start_sats={},dv=0,dv_epsilon=1e-5,obs_dv_multiplier=1,ro_ID=None):
 
-        self.ID =  ID
+        if ro_ID:
+            self.ID = ro_ID
+        else:
+            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
         # the list storing all objects in the route; a list ObsWindow, XlnkWindow, XlnkWindow...DlnkWindow
         self.route =  route
@@ -221,7 +262,7 @@ class DataRoute():
 
 
     def __copy__(self):
-        newone = type(self)(self.ID,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier)
+        newone = type(self)(None,None,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier,ro_ID=copy(self.ID))
         #  make a shallow copy of these container objects -  we want to refer to the same nested objects within the containers, but want a new container in both cases
         newone.route = copy(self.route)
         newone.window_start_sats = copy(self.window_start_sats)
@@ -267,7 +308,7 @@ class DataRoute():
         self.route.sort(key=lambda x: x.start)
 
     def  get_route_string( self,  time_base= None):
-        out_string = "dr %d: "% ( self.ID)
+        out_string = "dr %s: "% ( self.ID)
 
         for wind in self.route:
 
@@ -476,8 +517,7 @@ class DataRoute():
         return storage_intervals
 
 
-
-class LinkInfo(object):
+class LinkInfo():
     """docstring fos  LinkInfo"""
     def __init__(self,data_routes=[],total_data_vol=0,used_data_vol=0):
         self.data_routes = data_routes
@@ -486,5 +526,27 @@ class LinkInfo(object):
 
     def __str__( self):
         return  "routes: "+str(self.data_routes) + " ; dv %.0f/%.0f Mb" % ( self.used_data_vol, self.total_data_vol)
+
+class SimRouteContainer():
+
+    def __init__(self,agent_ID,agent_ID_index,data_routes,update_dt,ro_ID=None):
+
+        if ro_ID:
+            self.ID = ro_ID
+        else:
+            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
