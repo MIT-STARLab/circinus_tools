@@ -162,8 +162,12 @@ class DataMultiRoute():
     def get_latency( self,units='minutes',obs_option = 'end', dlnk_option = 'center'):
         return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
 
+    def get_display_string(self):
+        return 'scheduled_dv_by_dr: %s'%({'DR - '+dr.get_route_string():dv for dr,dv in self.scheduled_dv_by_dr.items()})
+
     def __repr__(self):
-        return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
+        # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
+        return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
 
     def validate (self,time_option='start_end'):
 
@@ -327,7 +331,7 @@ class DataRoute():
         self.route.sort(key=lambda x: x.start)
 
     def  get_route_string( self,  time_base= None):
-        out_string = "dr %s: "% ( self.ID)
+        out_string = ""
 
         for wind in self.route:
 
@@ -352,12 +356,12 @@ class DataRoute():
 
     def __repr__(self):
         if not self.scheduled_dv:
-            return  '('+self.get_route_string()+')'
+            return  '(dr %s: %s)'%(self.ID,self.get_route_string())
         else:
             if self.scheduled_dv == const.UNASSIGNED:
-                return  '('+self.get_route_string()+'; sched dv: %s/%.0f Mb'%( 'none', self.data_vol)+')'
+                return  '(dr %s: %s; sched dv: %s/%.0f Mb)'%( self.ID,self.get_route_string(),'none', self.data_vol)
             else:
-                return  '('+self.get_route_string()+'; sched dv: %.0f/%.0f Mb'%( self.scheduled_dv, self.data_vol)+')'
+                return  '(dr %s: %s; sched dv: %.0f/%.0f Mb)'%( self.ID,self.get_route_string(),self.scheduled_dv, self.data_vol)
 
     def __getitem__(self, key):
         """ getter for internal route by index"""
@@ -548,14 +552,37 @@ class LinkInfo():
 
 class SimRouteContainer():
 
-    def __init__(self,agent_ID,agent_ID_index,data_routes,update_dt,ro_ID=None):
+    def __init__(self,agent_ID,agent_ID_index,data_routes,utilization_by_dr,update_dt,ro_ID=None):
+
+        # handle case where we're only passed a single route (standard)
+        if type(data_routes) == DataMultiRoute:
+            dmr = data_routes
+
+            assert(type(utilization_by_dr) == float)
+            utilization_by_dr = {dmr:utilization_by_dr}
+
+            # make it a list
+            data_routes = [dmr]
+
+        # todo: relax this type constraint?
+        for dmr in data_routes:
+            if not type(dmr) == DataMultiRoute:
+                raise RuntimeWarning('Expected a DataMultiRoute, found %s'%(dmr))
 
         if ro_ID:
             self.ID = ro_ID
         else:
             self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
+        self.data_routes = data_routes if type(data_routes) == list else list(data_routes)
+        self.utilization_by_dr = utilization_by_dr
+        self.update_dt = update_dt
 
+    def get_display_string(self):
+        return 'utilization_by_dmr: %s'%({'DMR - '+dr.get_display_string():util for dr,util in self.utilization_by_dr.items()})
+
+    def __repr__(self):
+        return '(SRC %s: %s)'%(self.ID,self.get_display_string())
 
 
 
