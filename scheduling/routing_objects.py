@@ -26,33 +26,44 @@ def date_string(dt):
 
 class RoutingObjectID():
 
-    def __init__(self,creator_agent_ID,creator_agent_ID_index):
+    def __init__(self,creator_agent_ID,creator_agent_ID_indx):
         """constructor
         
         [description]
         :param creator_agent_ID: the ID of the sim agent that created the route with this ID (e.g. ground network (GP), satellite)
         :type creator_agent_ID: str
-        :param creator_agent_ID_index: index of the route for the creator agent. This generally should increase by one every time a new route object is created
-        :type creator_agent_ID_index: int
+        :param creator_agent_ID_indx: index of the route for the creator agent. This generally should increase by one every time a new route object is created
+        :type creator_agent_ID_indx: int
         """
         self.creator_agent_ID = creator_agent_ID
-        self.creator_agent_ID_index = creator_agent_ID_index
+        self.creator_agent_ID_indx = creator_agent_ID_indx
 
     # See:
     # https://docs.python.org/3.4/reference/datamodel.html#object.__hash__
     # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
     def __hash__(self):
         # xor the components together
-        return hash(self.creator_agent_ID) ^ hash(self.creator_agent_ID_index)
+        return hash(self.creator_agent_ID) ^ hash(self.creator_agent_ID_indx)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __repr__(self):
         if type(self.creator_agent_ID) == str:
-            return "'%s',%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
+            return "ro_ID('%s',%s)"%(self.creator_agent_ID,self.creator_agent_ID_indx)
         else: 
-            return "%s,%s"%(self.creator_agent_ID,self.creator_agent_ID_index)
+            return "ro_ID(%s,%s)"%(self.creator_agent_ID,self.creator_agent_ID_indx)
+
+    # makes IDs sortable
+    def __lt__(self,other):
+        # if not equal agent IDs, then compare the agent IDs
+        if not self.creator_agent_ID == other.creator_agent_ID:
+            return self.creator_agent_ID < other.creator_agent_ID
+
+        # if agent IDs are equal, want to compare indices
+        else:
+            return self.creator_agent_ID_indx < other.creator_agent_ID_indx
+
 
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects
