@@ -148,6 +148,7 @@ def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=N
     :raises: Exception, Exception
     """
 
+    sat_id_order = sat_id_order_pre
     # if the default is specified, then we'll make a default list based on the order in which we find IDs
     if sat_id_order_pre == 'default':
         #  if are provided a list of all the IDs, use that as the default
@@ -156,6 +157,8 @@ def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=N
         #  if we are not provided a list of the all the IDs,  we assume that every ID is just an ordinal
         else:            
             sat_id_order = [str(sat_indx) for sat_indx in range (num_satellites)]
+    elif not type(sat_id_order_pre) == list:
+        raise RuntimeError('Expected a list here')
 
     if len(sat_id_order) != num_satellites:
         raise Exception ("Number of satellite IDs is not equal to number of satellites specified in input file")
