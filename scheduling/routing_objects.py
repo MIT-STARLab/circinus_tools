@@ -64,6 +64,9 @@ class RoutingObjectID():
         else:
             return self.creator_agent_ID_indx < other.creator_agent_ID_indx
 
+    def get_indx(self):
+        return self.creator_agent_ID_indx
+
 
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects
