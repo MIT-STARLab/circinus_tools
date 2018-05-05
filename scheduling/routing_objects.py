@@ -5,7 +5,7 @@
 from copy import copy
 
 from circinus_tools  import  constants as const
-from .custom_activity_window import   ObsWindow,  DlnkWindow, XlnkWindow
+from .custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 from collections import namedtuple
 
 DATE_STRING_FORMAT = 'short'

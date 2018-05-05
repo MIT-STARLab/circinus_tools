@@ -10,7 +10,7 @@ from numpy import mean as np_mean
 
 from circinus_tools  import time_tools as tt
 from circinus_tools  import  constants as const
-from .activity_window import ActivityWindow
+from .base_window import EventWindow, ActivityWindow
 
 DATE_STRING_FORMAT = 'short'
 # DATE_STRING_FORMAT = 'iso'
@@ -270,7 +270,7 @@ class UrgentWindow(ActivityWindow):
         super(UrgentWindow, self).__init__(start, end)
 
 
-class EclipseWindow(ActivityWindow):
+class EclipseWindow(EventWindow):
     def __init__(self, window_ID, start, end):
         '''
         An eclipse window. Meant to represent when a satellite is in eclipse and can't see the sun

@@ -2,11 +2,7 @@ from datetime import timedelta
 
 from circinus_tools  import  constants as const
 
-class ActivityWindow(object):
-    """ specifies an activity that occurs from a start to an end time
-    
-    note that the hash function for this class uses the window_ID attribute. This should be globally unique across all  activity window instances and subclass instances created in the simulation
-    """
+class EventWindow():
 
     def __init__(self, start, end, window_ID):
         '''
@@ -53,8 +49,39 @@ class ActivityWindow(object):
 
     @property
     def duration(self):
-        
         return self.end - self.start
+
+    def calc_center ( self):
+        return self.start + ( self.end -  self.start)/2
+
+
+class ActivityWindow(EventWindow):
+    """ specifies an activity that occurs from a start to an end time
+    
+    note that the hash function for this class uses the window_ID attribute. This should be globally unique across all  activity window instances and subclass instances created in the simulation
+    """
+
+    def __init__(self, start, end, window_ID):
+        '''
+        Creates an activity window
+
+        :param datetime start: start time of the window
+        :param datetime end: end time of the window
+        :param int window_ID:  unique window ID used for hashing and comparing windows
+        '''
+
+        self.original_start = start
+        self.original_end = end
+        self.data_vol = const.UNASSIGNED
+        self.scheduled_data_vol = const.UNASSIGNED
+        self.remaining_data_vol = const.UNASSIGNED
+
+        self._ave_data_rate_cache = None
+
+        #  keeps track of if the start and end times of this window have been updated, for use as a safeguard
+        self.timing_updated = False
+
+        super().__init__(start, end, window_ID)
 
     @property
     def ave_data_rate(self):
@@ -69,9 +96,6 @@ class ActivityWindow(object):
             if self.timing_updated: raise RuntimeWarning('Trying to calculate average data rate after window timing has been updated')
             self._ave_data_rate_cache = self.data_vol / ( self.end - self.start).total_seconds ()
             return self._ave_data_rate_cache
-
-    def calc_center ( self):
-        return self.start + ( self.end -  self.start)/2
 
     def update_duration_from_scheduled_dv( self,min_duration_s=10):
         """ update duration based on schedule data volume
@@ -94,33 +118,4 @@ class ActivityWindow(object):
 
         # mark that timing has been updated
         self.timing_updated = True
-
-
-    def print_self(self):
-        print('ActivityWindow')
-        print('start: ' + str(self.start))
-        print('end: ' + str(self.end))
-        print('......')
-
-    def combine_with_window(self,other_act):
-        '''
-        Note: deprecated
-
-        Combine this window with another one. The combined window object is stored in self. Overlap existence is assumed -compareWindows should be called first to see if there's overlap or not
-
-        :param other_act: other window to combine into self
-        :return: nothing (self stores combined window)
-        '''
-
-        if self.start < other_act.start:
-            if self.end < other_act.end:
-                self.end = other_act.end
-            else:
-                print('ActivityWindow.py: warning, combining non-overlapping windows')
-
-        if self.start > other_act.start:
-            self.start = other_act.start
-
-            if self.start > other_act.end:
-                print('ActivityWindow.py: warning, combining non-overlapping windows')
 
