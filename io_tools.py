@@ -181,3 +181,19 @@ def make_and_validate_gs_id_order(gs_params):
         raise Exception ("Every gs ID should be unique") 
 
     return gs_id_order
+
+def parse_power_consumption_params(p_params):
+    edot_by_act = {}
+    batt_storage = {}
+
+    for act_code in p_params['power_consumption_W'].keys():
+        # ignore escaped keys
+        if act_code[0:1] == "_":
+            pass
+        else:
+            edot_by_act[act_code] = p_params['power_consumption_W'][act_code][p_params[act_code+'_option']]
+
+    batt_storage['e_min'] = p_params['battery_storage_Wh']['e_min'][p_params['battery_option']]
+    batt_storage['e_max'] = p_params['battery_storage_Wh']['e_max'][p_params['battery_option']]
+
+    return edot_by_act,batt_storage

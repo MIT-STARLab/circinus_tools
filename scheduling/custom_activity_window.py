@@ -47,6 +47,15 @@ class ObsWindow(ActivityWindow):
         self.collected_data_vol = 0
         super(ObsWindow, self).__init__(start, end, window_ID)
 
+    def __str__(self):
+        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
+
+    def __repr__(self):
+        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
+
+    def get_code(self):
+        return 'obs'
+
     def print_self(self):
         print('ObsWindow')
         print('sat_indx: ' + str(self.sat_indx))
@@ -67,11 +76,6 @@ class ObsWindow(ActivityWindow):
         self.remaining_data_vol = self.data_vol
         self.unmodified_data_vol = self.data_vol
 
-    def __str__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
-
-    def __repr__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
 
 
 class CommWindow(ActivityWindow):
@@ -134,6 +138,15 @@ class DlnkWindow(CommWindow):
         else:
             super().__getattr__(attr)            
 
+    def __str__(self):
+        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
+
+    def __repr__(self):
+        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
+
+    def get_code(self):
+        return 'dlnk'
+
     def print_self(self,  print_data_vol = True):
         print('DlnkWindow')
         print('sat_indx: ' + str(self.sat_indx))
@@ -145,11 +158,6 @@ class DlnkWindow(CommWindow):
         print('end: ' + str(self.end))
         print('......')
 
-    def __str__(self):
-        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
-
-    def __repr__(self):
-        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
 
 class XlnkWindow(CommWindow):
     def __init__(self, window_ID, sat_indx, xsat_indx, sat_xsat_indx, start, end, symmetric=True, tx_sat=None):
@@ -184,9 +192,28 @@ class XlnkWindow(CommWindow):
 
         super(XlnkWindow, self).__init__(start, end, window_ID)
 
+    def __str__(self):
+        return  self.__repr__()
+
+    def __repr__(self):
+        if self.symmetric:
+            return  "(XlnkWindow id %d sym. sats %d<->%d dv %f %s,%s)" % (self.window_ID,self.sat_indx, self.xsat_indx,self.data_vol, date_string(self.start),date_string(self.end))
+        else:
+            return  "(XlnkWindow id %d uni. sats %d->%d dv %f %s,%s)" % (self.window_ID,self.tx_sat, self.get_xlnk_partner(self.tx_sat),self.data_vol, date_string(self.start),date_string(self.end))
+
     @property
     def rx_sat(self):
         return self.sat_indx if self.sat_indx != self.tx_sat else self.xsat_indx
+
+    def get_code(self,sat_indx):
+        if self.symmetric:
+            return 'xlnk_tx'
+        else:
+            if self.is_rx(sat_indx):
+                return 'xlnk_rx'
+            else:
+                return 'xlnk_tx'
+                
 
     def print_self(self,  print_data_vol = True):
         print('XlnkWindow')
@@ -199,14 +226,6 @@ class XlnkWindow(CommWindow):
         print('end: ' + str(self.end))
         print('......')
 
-    def __str__(self):
-        return  self.__repr__()
-
-    def __repr__(self):
-        if self.symmetric:
-            return  "(XlnkWindow id %d sym. sats %d<->%d dv %f %s,%s)" % (self.window_ID,self.sat_indx, self.xsat_indx,self.data_vol, date_string(self.start),date_string(self.end))
-        else:
-            return  "(XlnkWindow id %d uni. sats %d->%d dv %f %s,%s)" % (self.window_ID,self.tx_sat, self.get_xlnk_partner(self.tx_sat),self.data_vol, date_string(self.start),date_string(self.end))
 
     def get_xlnk_partner(self,sat_indx):
         """return indx of the cross-linked partner
