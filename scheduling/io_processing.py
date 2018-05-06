@@ -18,24 +18,24 @@ from circinus_tools.scheduling.routing_objects import LinkInfo
 class SchedIOProcessor():
     """docstring for GPInputProcessor"""
 
-    def __init__(self,gp_params):
+    def __init__(self,module_params):
         """initializes based on parameters
         
         initializes based on parameters
-        :param gp_params: global namespace parameters created from input files (possibly with some small non-structural modifications to params). The name spaces here should trace up all the way to the input files.
+        :param module_params: global namespace parameters created from input files (possibly with some small non-structural modifications to params). The name spaces here should trace up all the way to the input files. (e.g. sim_params, gp_params)
         :type params: dict
         """
 
         #  assume modified Julian date for now. todo: make this a parameter
         self.input_date_format = const.MODIFIED_JULIAN_DATE
 
-        scenario_params = gp_params['gp_orbit_prop_params']['scenario_params']
-        sat_params = gp_params['gp_orbit_prop_params']['sat_params']
-        obs_params = gp_params['gp_orbit_prop_params']['obs_params']
-        gs_params = gp_params['gp_orbit_prop_params']['gs_params']
-        gp_general_other_params = gp_params['gp_general_params']['other_params']
-        gp_data_rates_accesses_params = gp_params['gp_data_rates_params']['accesses_data_rates']
-        gp_data_rates_other_params = gp_params['gp_data_rates_params']['other_data']
+        scenario_params = module_params['orbit_prop_params']['scenario_params']
+        sat_params = module_params['orbit_prop_params']['sat_params']
+        obs_params = module_params['orbit_prop_params']['obs_params']
+        gs_params = module_params['orbit_prop_params']['gs_params']
+        gp_general_other_params = module_params['gp_general_params']['other_params']
+        data_rates_accesses_params = module_params['data_rates_params']['accesses_data_rates']
+        data_rates_other_params = module_params['data_rates_params']['other_data']
 
         #  common parameters used for processing  multiple types of input windows
         # scenario_start: datetime storing the start of the overall simulation period
@@ -47,13 +47,13 @@ class SchedIOProcessor():
         self.num_sats=sat_params['num_sats']
         self.num_gs=gs_params['num_gs']
 
-        self.obs_times=gp_data_rates_accesses_params['obs_times']
+        self.obs_times=data_rates_accesses_params['obs_times']
         self.pl_data_rate=sat_params['pl_data_rate']
         self.targ_id_ignore_list=gp_general_other_params['targ_id_ignore_list']
         self.all_targ_IDs = [targ['id'] for targ in obs_params['targets']]
 
-        self.dlnk_times=gp_data_rates_accesses_params['dlnk_times']
-        self.dlnk_rates=gp_data_rates_accesses_params['dlnk_rates']
+        self.dlnk_times=data_rates_accesses_params['dlnk_times']
+        self.dlnk_rates=data_rates_accesses_params['dlnk_rates']
         self.min_allowed_dv_dlnk=gp_general_other_params['min_allowed_dv_dlnk_Mb']
         self.sat_indcs_disable_dlnk=gp_general_other_params.get('sat_indcs_disable_dlnk',[])
         self.gs_id_ignore_list=gp_general_other_params['gs_id_ignore_list']
@@ -69,11 +69,11 @@ class SchedIOProcessor():
                 raise RuntimeWarning("couldn't find disable dlnk sat indx %s (type %s) in list of all sat indcs (%s)"%(sat_indx,type(sat_indx),all_sat_indcs_str))
 
 
-        self.xlnk_times=gp_data_rates_accesses_params['xlnk_times']
-        self.xlnk_rates=gp_data_rates_accesses_params['xlnk_rates']
+        self.xlnk_times=data_rates_accesses_params['xlnk_times']
+        self.xlnk_rates=data_rates_accesses_params['xlnk_rates']
         self.min_allowed_dv_xlnk=gp_general_other_params['min_allowed_dv_xlnk_Mb']
 
-        self.eclipse_times=gp_data_rates_other_params['eclipse_times']
+        self.eclipse_times=data_rates_other_params['eclipse_times']
 
         self.use_symmetric_xlnk_windows = gp_general_other_params['use_symmetric_xlnk_windows']
 

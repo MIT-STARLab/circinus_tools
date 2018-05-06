@@ -34,7 +34,7 @@ def duplicate_entry_for_sat_ids(params_entry,force_duplicate = False):
 
     return new_entries
 
-def unpack_sat_entry_list(entry_list,force_duplicate = False):
+def unpack_sat_entry_list(entry_list,output_format='list',id_tag = 'sat_id',force_duplicate = False):
     """unpacks a list of parameter entries for a set of satellites
     
     a list of parameter entries can contain collapsed entries that specify the properties for more than one satellite ID. in this case we need to convert those collapsed entries into unique entries for each satellite ID. So this:
@@ -95,18 +95,27 @@ def unpack_sat_entry_list(entry_list,force_duplicate = False):
     :rtype: {list, list}
     """
 
+    id_tag_plural = id_tag+'s'
+
     new_entries = []
 
     for entry in entry_list:
         #  if this field is present, that means the parameter entry applies for more than one satellite ID.  need to unpack for all the relevant satellite ID
-        if entry.get('sat_ids', None):
+        if entry.get(id_tag_plural, None):
             new_entries += duplicate_entry_for_sat_ids ( entry,force_duplicate)
         else:
             new_entries.append(entry)
 
-    sat_ids = [str (entry['sat_id']) for entry in new_entries]
+    ids_found = [str (entry[id_tag]) for entry in new_entries]
 
-    return new_entries, sat_ids
+    if output_format=='list':
+        return new_entries, ids_found
+    elif output_format=='dict':
+        new_entries_by_id_tag = {str(entry[id_tag]):entry for entry in new_entries}
+        return new_entries_by_id_tag, ids_found
+    else:
+        raise NotImplementedError
+
 
 def sort_input_params_by_sat_IDs(params_list,sat_id_order):
 
@@ -183,17 +192,17 @@ def make_and_validate_gs_id_order(gs_params):
     return gs_id_order
 
 def parse_power_consumption_params(p_params):
-    edot_by_act = {}
+    edot_by_mode = {}
     batt_storage = {}
 
-    for act_code in p_params['power_consumption_W'].keys():
+    for mode_code in p_params['power_consumption_W'].keys():
         # ignore escaped keys
-        if act_code[0:1] == "_":
+        if mode_code[0:1] == "_":
             pass
         else:
-            edot_by_act[act_code] = p_params['power_consumption_W'][act_code][p_params[act_code+'_option']]
+            edot_by_mode[mode_code] = p_params['power_consumption_W'][mode_code][p_params[mode_code+'_option']]
 
     batt_storage['e_min'] = p_params['battery_storage_Wh']['e_min'][p_params['battery_option']]
     batt_storage['e_max'] = p_params['battery_storage_Wh']['e_max'][p_params['battery_option']]
 
-    return edot_by_act,batt_storage
+    return edot_by_mode,batt_storage
