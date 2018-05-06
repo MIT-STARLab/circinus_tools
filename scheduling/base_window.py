@@ -119,3 +119,32 @@ class ActivityWindow(EventWindow):
         # mark that timing has been updated
         self.timing_updated = True
 
+def find_window_in_wind_list(curr_time_dt,start_windex,wind_list):
+    """ Step through a list of windows sorted by start time and figure out which window/window index we are currently in
+    
+    :param curr_time_dt: current time
+    :type curr_time_dt: datetime.datetime
+    :param start_windex: intial index in wind_list at which to start search
+    :type start_windex: int
+    :param wind_list: list of event windows
+    :type wind_list: list(EventWindow)
+    :returns: current window (if curr_time_dt falls within a window), current index in window list (index of first window that temporally follows or contains curr_time_dt)
+    :rtype: {EventWindow,int}
+    """
+
+    if start_windex is None:
+        return None, None
+
+    # move current act window possibility forward if we're past it, and we're not yet at end of schedule
+    # -1 so we only advance if we're not yet at the end
+    while start_windex < len(wind_list)-1 and  curr_time_dt > wind_list[start_windex].end:
+        start_windex += 1
+
+    wind_possible = wind_list[start_windex]
+    # we've found the first window for which curr_time_dt is not past its end. Check if we're actually in that wind
+    if start_windex >= wind_possible.start and start_windex <= wind_possible.end:
+        curr_wind = wind_possible
+        return curr_wind,start_windex
+    # if we're not in the wind, we've still found the relevant window index
+    else:
+        return None,start_windex
