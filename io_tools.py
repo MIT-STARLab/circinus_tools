@@ -205,4 +205,9 @@ def parse_power_consumption_params(p_params):
     batt_storage['e_min'] = p_params['battery_storage_Wh']['e_min'][p_params['battery_option']]
     batt_storage['e_max'] = p_params['battery_storage_Wh']['e_max'][p_params['battery_option']]
 
-    return edot_by_mode,batt_storage
+    power_units = {
+        'power_consumption': 'W',
+        'battery_storage': 'Wh'
+    }
+
+    return edot_by_mode,batt_storage,power_units
