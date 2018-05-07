@@ -2,7 +2,7 @@
 # 
 # @author Kit Kennedy
 
-from copy import copy
+from copy import copy,deepcopy
 
 from circinus_tools  import  constants as const
 from .custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
@@ -551,15 +551,20 @@ class LinkInfo():
         return  "routes: "+str(self.data_routes) + " ; dv %.0f/%.0f Mb" % ( self.used_data_vol, self.total_data_vol)
 
 class SimRouteContainer():
+    """ This contains lower level data route objects, for use in the constellation simulation. It effectively allows the simulation to easily vary the amount of data volume, time scheduled for a data route, in order to flexibly replan in realtime. 
 
-    def __init__(self,agent_ID,agent_ID_index,data_routes,utilization_by_dr,update_dt,ro_ID=None):
+    The use of this container is an artifact of the choice to model data routes as a series of activity windows of fixed start/end times. If we wish to change any of those start/end times, that would be reflected as a change in the underlying window object, but not in the data route object itself, which is not great. So we'd have to create a new data route object - which is not great for rescheduling because its harder to track the data route object as it gets passed around the constellation. By wrapping the data route in a container that can change its state, we have both timing/dv flexibility and persistent object indexing"""
+
+    def __init__(self,agent_ID,agent_ID_index,data_routes,t_utilization_by_dr,dv_utilization_by_dr,update_dt,ro_ID=None):
 
         # handle case where we're only passed a single route (standard)
         if type(data_routes) == DataMultiRoute:
             dmr = data_routes
 
-            assert(type(utilization_by_dr) == float)
-            utilization_by_dr = {dmr:utilization_by_dr}
+            assert(type(t_utilization_by_dr) == float)
+            t_utilization_by_dr = {dmr:t_utilization_by_dr}
+            assert(type(dv_utilization_by_dr) == float)
+            dv_utilization_by_dr = {dmr:dv_utilization_by_dr}
 
             # make it a list
             data_routes = [dmr]
@@ -575,14 +580,42 @@ class SimRouteContainer():
             self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
         self.data_routes = data_routes if type(data_routes) == list else list(data_routes)
-        self.utilization_by_dr = utilization_by_dr
+
+        # this is the "time utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the duration for every window in the route should be multiplied to determine how long the window will actually be executed in the real, final schedule
+        self.t_utilization_by_dr = t_utilization_by_dr
+        # this is the "data volume utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the scheduled data volume for every window in the route should be multiplied to determine how much data volume will actually be throughput on this dr in the real, final schedule
+        self.dv_utilization_by_dr = dv_utilization_by_dr
         self.update_dt = update_dt
 
-    def get_display_string(self):
-        return 'utilization_by_dmr: %s'%({'DMR - '+dr.get_display_string():util for dr,util in self.utilization_by_dr.items()})
+    @property
+    def end():
+        # get latest end of all dmrs
+        return max(dmr.get_dlnk().end for dmr in self.data_routes)
 
     def __repr__(self):
         return '(SRC %s: %s)'%(self.ID,self.get_display_string())
+
+    def get_display_string(self):
+        return 'utilization_by_dmr: %s'%({'DMR - '+dr.get_display_string():util for dr,util in self.dv_utilization_by_dr.items()})
+
+
+    def get_winds_executable(self):
+        winds_executable = []
+
+        for dmr in self.data_routes:
+            winds = dmr.get_winds()
+
+            for wind in winds:
+                # make a deepcopy so we don't risk information crossing the ether in the simulation...
+                wind = deepcopy(wind)
+                wind.set_executable_properties(self,t_utilization_by_dr[dmr],dv_utilization_by_dr[dmr])
+                winds_executable.append(wind)
+
+        return winds_executable
+
+
+
+
 
 
 

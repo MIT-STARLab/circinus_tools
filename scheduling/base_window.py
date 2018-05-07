@@ -119,7 +119,29 @@ class ActivityWindow(EventWindow):
         # mark that timing has been updated
         self.timing_updated = True
 
-def find_window_in_wind_list(curr_time_dt,start_windex,wind_list):
+    def set_executable_properties(self,t_utilization,dv_utilization):
+        """Set properties for final execution of the window"""
+
+        if not t_utilization == dv_utilization:
+            raise RuntimeWarning("Saw different t_utilization (%f) than dv_utilization (%f). This is not supported in current scheduling approach"%(t_utilization,dv_utilization))
+
+        old_duration = self.end - self.start
+
+        executable_duration = old_duration*t_utilization
+
+        self.executable_start = self.center - executable_duration/2
+        self.executable_end = self.center + executable_duration/2
+
+        self.executable_data_vol = self.scheduled_data_vol*dv_utilization
+
+
+def standard_time_accessor(wind,time_prop):
+    if time_prop == 'start':
+        return wind.start
+    elif time_prop == 'end':
+        return wind.end
+
+def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
     """ Step through a list of windows sorted by start time and figure out which window/window index we are currently in
     
     :param curr_time_dt: current time
@@ -142,7 +164,7 @@ def find_window_in_wind_list(curr_time_dt,start_windex,wind_list):
 
     wind_possible = wind_list[start_windex]
     # we've found the first window for which curr_time_dt is not past its end. Check if we're actually in that wind
-    if start_windex >= wind_possible.start and start_windex <= wind_possible.end:
+    if curr_time_dt >= time_accessor(wind_possible,'start') and curr_time_dt <= time_accessor(wind_possible,'end'):
         curr_wind = wind_possible
         return curr_wind,start_windex
     # if we're not in the wind, we've still found the relevant window index

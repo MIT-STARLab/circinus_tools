@@ -76,6 +76,9 @@ class ObsWindow(ActivityWindow):
         self.remaining_data_vol = self.data_vol
         self.unmodified_data_vol = self.data_vol
 
+    def has_sat_indx(self,sat_indx):
+        return self.sat_indx == sat_indx
+
 
 
 class CommWindow(ActivityWindow):
@@ -147,6 +150,9 @@ class DlnkWindow(CommWindow):
     def get_code(self):
         return 'dlnk'
 
+    def has_sat_indx(self,sat_indx):
+        return self.sat_indx == sat_indx
+
     def print_self(self,  print_data_vol = True):
         print('DlnkWindow')
         print('sat_indx: ' + str(self.sat_indx))
@@ -214,6 +220,8 @@ class XlnkWindow(CommWindow):
             else:
                 return 'xlnk_tx'
                 
+    def has_sat_indx(self,sat_indx):
+        return self.sat_indx == sat_indx or self.xsat_indx == sat_indx
 
     def print_self(self,  print_data_vol = True):
         print('XlnkWindow')
