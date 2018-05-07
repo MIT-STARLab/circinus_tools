@@ -373,19 +373,26 @@ class Dancecard(object):
             end_indx = min(dancecard_last_indx, end_indx)
 
 
-        for indx in range(start_indx, end_indx + 1): # Make sure to include end index
-            # add object to schedule. Note this is not a deepcopy!
+        try:
+            for indx in range(start_indx, end_indx + 1): # Make sure to include end index
+                # add object to schedule. Note this is not a deepcopy!
 
-            if self.item_type == list:
-                # if list is not initialized yet - we have None at this index
-                if not self.dancecard[indx]:
-                    self.dancecard[indx] = [item]
+                # if indx is negative, this likely means that start or end is before dancecard start. No good.
+                if indx < 0:
+                    raise RuntimeWarning('Encountered unexpected negative index when trying to add to dancecard. Desired add start time (%s) or end time (%s) is probably less than dancard start time (%s)'%(start.isoformat(),end.isoformat(),self.dancecard_start_dt.isoformat()))
+
+                if self.item_type == list:
+                    # if list is not initialized yet - we have None at this index
+                    if not self.dancecard[indx]:
+                        self.dancecard[indx] = [item]
+                    else:
+                        self.dancecard[indx].append(item) 
+
+                # if it's not a list-based dancecard, just set index equal to item
                 else:
-                    self.dancecard[indx].append(item) 
-
-            # if it's not a list-based dancecard, just set index equal to item
-            else:
-                self.dancecard[indx] = item
+                    self.dancecard[indx] = item
+        except IndexError:
+            raise RuntimeWarning('Index out of range for adding to dancecard. Desired add start time (%s) or end time (%s) is probably out of range of dancard start,end time (%s,%s)'%(start.isoformat(),end.isoformat(),self.dancecard_start_dt.isoformat(),self.dancecard_end_dt.isoformat()))
 
 
     def remove_winds_from_dancecard(self, winds, unmodified_yes = False):
