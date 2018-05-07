@@ -574,6 +574,9 @@ class SimRouteContainer():
             if not type(dmr) == DataMultiRoute:
                 raise RuntimeWarning('Expected a DataMultiRoute, found %s'%(dmr))
 
+            if not t_utilization_by_dr[dmr] == dv_utilization_by_dr[dmr]:
+                raise RuntimeWarning('For current version of global planner, expect time and data volume utilization for a data route to be the same. DMR: %s'%(dmr))
+
         if ro_ID:
             self.ID = ro_ID
         else:
@@ -586,6 +589,11 @@ class SimRouteContainer():
         # this is the "data volume utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the scheduled data volume for every window in the route should be multiplied to determine how much data volume will actually be throughput on this dr in the real, final schedule
         self.dv_utilization_by_dr = dv_utilization_by_dr
         self.update_dt = update_dt
+
+    @property
+    def start():
+        # get earliest start of all dmrs
+        return min(dmr.get_obs().start for dmr in self.data_routes)
 
     @property
     def end():
