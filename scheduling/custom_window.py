@@ -135,11 +135,11 @@ class DlnkWindow(CommWindow):
 
     # THIS IS A DIRTY HACK for dealing with a legacy pickle file that uses gs_ID instead of gs_indx. 
     # TODO: remove this after  initial dev
-    def __getattr__(self, attr):
-        if attr == 'gs_indx' and 'gs_indx' not in dir(self):
-            return self.gs_ID
-        else:
-            super().__getattr__(attr)            
+    # def __getattr__(self, attr):
+    #     if attr == 'gs_indx' and 'gs_indx' not in dir(self):
+    #         return self.gs_ID
+    #     else:
+    #         super().__getattr__(attr)            
 
     def __str__(self):
         return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
