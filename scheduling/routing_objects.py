@@ -67,187 +67,6 @@ class RoutingObjectID():
     def get_indx(self):
         return self.creator_agent_ID_indx
 
-
-class DataMultiRoute():
-    """ aggregates multiple DataRoute objects
-    
-    Meant to represent the aggregation of multiple "simple" routes from a given observation to a given downlink. in general it's good to keep these data routes separate for the activity scheduling algorithm so that there is less potential for overlap with the Windows in other data routes. however, in the case where the data routes and activity scheduling need to have a higher minimum data volume than is achievable with the routes delivered by the route selection algorithm, then we need to aggregate multiple simple routes into a multi-route
-
-    note that it is still valid to multiply the entire data volume of this route by a single utilization number from 0 to 1 to represent how much data volume is used from this multi-route. When constructing the multi-route, we ensure that no data volume from any given activity window is spoken for by multiple DataRoute objects within the multi-route; i.e.,  It's perfectly allowable to schedule all of the data routes within from a throughput perspective. the utilization number effectively carries through to multiply the data volumes of the individual data route objects.
-    """
-
-    def __init__(self,agent_ID,agent_ID_index,data_routes,dv_epsilon=1e-5,ro_ID=None):
-
-        if ro_ID:
-            self.ID = ro_ID
-        else:
-            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
-
-        #  all of the "simple"  data route objects contained within this multi-route
-        self.data_routes = data_routes
-        #  this map holds the amount of data volume we have allocated to each of the data routes within this multi-route. we initially create it with all of the data volume from the initializer data routes, but it is not necessarily the case that the data volume numbers within this dict will be the same as the data volume numbers within the individual data route objects
-        self.data_vol_by_dr = {dr:dr.data_vol for dr in data_routes}
-        self.scheduled_dv_by_dr = {dr:const.UNASSIGNED for dr in data_routes}
-        self.has_scheduled_dv = False
-
-        self.dv_epsilon=dv_epsilon
-
-        for dr in data_routes:
-            if not type(dr) == DataRoute:
-                raise RuntimeError('only data route objects should be used to construct a new data multi-route')
-
-    def __hash__(self):
-        return hash(self.ID)
-
-    def __eq__(self, other):
-        return self.ID == other.ID
-
-    @property
-    def data_vol(self):
-        return sum(self.data_vol_by_dr.values())
-
-    def data_vol_for_wind(self,wind):
-        wind_sum = sum(dv for dr,dv in self.data_vol_by_dr.items() if wind in dr.get_winds())
-
-        if wind_sum == 0:
-            raise KeyError('Found zero data volume for window, which assumedly means it is not in the route. self: %s, wind: %s'%(self,wind))
-
-        return wind_sum
-
-    @property
-    def scheduled_dv(self):
-        if self.has_scheduled_dv:
-            if const.UNASSIGNED in self.scheduled_dv_by_dr.values():
-                raise RuntimeWarning('Saw unassigned scheduled data volume for dr in self: %s'%(self))
-
-            return sum(self.scheduled_dv_by_dr.values())
-        else:
-            return const.UNASSIGNED
-
-    def scheduled_dv_for_wind(self,wind):
-        if self.has_scheduled_dv:
-            # note: don't check minimum data volume here because scheduled data volume could go to zero
-            return sum(s_dv for dr,s_dv in self.scheduled_dv_by_dr.items() if wind in dr.get_winds())
-        else:
-            return const.UNASSIGNED    
-
-    def set_scheduled_dv_frac(self,fraction):
-        for dr in self.data_routes:
-            self.scheduled_dv_by_dr[dr] = self.data_vol_by_dr[dr]*fraction
-
-        self.has_scheduled_dv = True
-
-
-    def get_winds(self):
-        """ get the set of windows from all of the routes contained within this multi-route
-        
-        Returns the set of all windows from all the DataRoutes within. Note that this is a set, so each window only shows up once
-        :returns: [description]
-        :rtype: {[type]}
-        """
-
-        return set(wind for dr in self.data_routes for wind in dr.get_winds())
-
-    def get_obs( self):
-        #  use first route because all routes should have the same observation
-        return self.data_routes[0].get_obs()
-
-    def get_dlnk(self):
-        #  use first route because all routes should have the same downlink
-        return self.data_routes[0].get_dlnk()
-
-    def has_xlnk(self):
-        return any(dr.has_xlnk() for dr in self.data_routes)
-
-    def get_latency( self,units='minutes',obs_option = 'end', dlnk_option = 'center'):
-        return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
-
-    def get_display_string(self):
-        return 'scheduled_dv_by_dr: %s'%({'DR - '+dr.get_route_string():dv for dr,dv in self.scheduled_dv_by_dr.items()})
-
-    def __repr__(self):
-        # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
-        return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
-
-    def validate (self,time_option='start_end'):
-
-        # todo: remove this hack! It's for dealing with already-pickled RS outputs
-        try:
-            self.dv_epsilon
-        except AttributeError:
-            self.dv_epsilon = 1  # Mb
-
-        for dr in self.data_routes:
-            #  validate the data routes individually - this checks for temporal and data volume consistency within those routes
-            dr.validate(time_option)
-            #  validate that they all have the same initial observation and the same final downlink
-            assert(dr.get_obs() == self.get_obs())
-            assert(dr.get_dlnk() == self.get_dlnk())
-
-        avail_dv_by_wind = {}
-        # figure out what window data volume is already occupied by the data routes within self        
-        for dr in self.data_routes:
-            
-            for wind in dr.get_winds():
-                #  if we didn't yet encounter this window in any of the routes in self
-                avail_dv_by_wind.setdefault(wind,wind.data_vol)
-
-                avail_dv_by_wind[wind] -= dr.data_vol
-
-        #  check that for all of the windows in all of the routes, no window is oversubscribed
-        #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
-        for dv in avail_dv_by_wind.values():
-            assert(dv >= 0 - self.dv_epsilon)
-
-
-    def accumulate_dr( self, candidate_dr,min_dmr_candidate_dv=0):
-        """ add a simple data route to this data multi route
-        
-        [description]
-        :param dmrs: data multi routes to combine into a new multiroute
-        :type dmrs: list(DataMultiRoute)
-        """
-
-        # need to have matching observation and downlink for candidate to be added on to the multi-route
-        if not candidate_dr.get_obs() == self.get_obs():
-            return False
-        if not candidate_dr.get_dlnk() == self.get_dlnk():
-            return False
-
-        avail_dv_by_wind = {}
-         # figure out what window data volume is already occupied by the data routes within self        
-        for dr in self.data_routes:
-            for wind in dr.get_winds():
-                #  if we didn't yet encounter this window in any of the routes in self
-                avail_dv_by_wind.setdefault(wind,wind.data_vol)
-                avail_dv_by_wind[wind] -= dr.data_vol
-
-        #  figure out how much data volume can be allotted to the candidate data route
-        candidate_dv =candidate_dr.data_vol
-        for wind in candidate_dr.get_winds():
-            usable_wind_dv = min(avail_dv_by_wind.get(wind,wind.data_vol),candidate_dr.data_vol)
-
-            candidate_dv = min(candidate_dv, usable_wind_dv)
-
-        #  if there is enough data volume left, then add the data  route
-        if candidate_dv > min_dmr_candidate_dv:
-            self.data_routes.append(candidate_dr)
-            self.data_vol_by_dr[candidate_dr] = candidate_dv
-            self.scheduled_dv_by_dr[candidate_dr] = const.UNASSIGNED
-            return True
-        else:
-            return False
-
-    def get_data_storage_intervals(self):
-        storage_intervals = []
-
-        # we can do this independently because if this is a valid DMR, then the data volume (or bandwidth usage) for each route is mutex, and we don't have to worry about overlap
-        for dr in self.data_routes:
-            storage_intervals += dr.get_data_storage_intervals()
-
-        return storage_intervals
-
-
 class DataRoute():
     '''
     Contains all the relevant information about the path taken by a single data packet traveling through the satellite network
@@ -539,16 +358,184 @@ class DataRoute():
 
         return storage_intervals
 
+class DataMultiRoute():
+    """ aggregates multiple DataRoute objects
+    
+    Meant to represent the aggregation of multiple "simple" routes from a given observation to a given downlink. in general it's good to keep these data routes separate for the activity scheduling algorithm so that there is less potential for overlap with the Windows in other data routes. however, in the case where the data routes and activity scheduling need to have a higher minimum data volume than is achievable with the routes delivered by the route selection algorithm, then we need to aggregate multiple simple routes into a multi-route
 
-class LinkInfo():
-    """docstring fos  LinkInfo"""
-    def __init__(self,data_routes=[],total_data_vol=0,used_data_vol=0):
+    note that it is still valid to multiply the entire data volume of this route by a single utilization number from 0 to 1 to represent how much data volume is used from this multi-route. When constructing the multi-route, we ensure that no data volume from any given activity window is spoken for by multiple DataRoute objects within the multi-route; i.e.,  It's perfectly allowable to schedule all of the data routes within from a throughput perspective. the utilization number effectively carries through to multiply the data volumes of the individual data route objects.
+    """
+
+    def __init__(self,agent_ID,agent_ID_index,data_routes,dv_epsilon=1e-5,ro_ID=None):
+
+        if ro_ID:
+            self.ID = ro_ID
+        else:
+            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+
+        #  all of the "simple"  data route objects contained within this multi-route
         self.data_routes = data_routes
-        self.total_data_vol = total_data_vol
-        self.used_data_vol = used_data_vol
+        #  this map holds the amount of data volume we have allocated to each of the data routes within this multi-route. we initially create it with all of the data volume from the initializer data routes, but it is not necessarily the case that the data volume numbers within this dict will be the same as the data volume numbers within the individual data route objects
+        self.data_vol_by_dr = {dr:dr.data_vol for dr in data_routes}
+        self.scheduled_dv_by_dr = {dr:const.UNASSIGNED for dr in data_routes}
+        self.has_scheduled_dv = False
 
-    def __str__( self):
-        return  "routes: "+str(self.data_routes) + " ; dv %.0f/%.0f Mb" % ( self.used_data_vol, self.total_data_vol)
+        self.dv_epsilon=dv_epsilon
+
+        for dr in data_routes:
+            if not type(dr) == DataRoute:
+                raise RuntimeError('only data route objects should be used to construct a new data multi-route')
+
+    def __hash__(self):
+        return hash(self.ID)
+
+    def __eq__(self, other):
+        return self.ID == other.ID
+
+    @property
+    def data_vol(self):
+        return sum(self.data_vol_by_dr.values())
+
+    def data_vol_for_wind(self,wind):
+        wind_sum = sum(dv for dr,dv in self.data_vol_by_dr.items() if wind in dr.get_winds())
+
+        if wind_sum == 0:
+            raise KeyError('Found zero data volume for window, which assumedly means it is not in the route. self: %s, wind: %s'%(self,wind))
+
+        return wind_sum
+
+    @property
+    def scheduled_dv(self):
+        if self.has_scheduled_dv:
+            if const.UNASSIGNED in self.scheduled_dv_by_dr.values():
+                raise RuntimeWarning('Saw unassigned scheduled data volume for dr in self: %s'%(self))
+
+            return sum(self.scheduled_dv_by_dr.values())
+        else:
+            return const.UNASSIGNED
+
+    def scheduled_dv_for_wind(self,wind):
+        if self.has_scheduled_dv:
+            # note: don't check minimum data volume here because scheduled data volume could go to zero
+            return sum(s_dv for dr,s_dv in self.scheduled_dv_by_dr.items() if wind in dr.get_winds())
+        else:
+            return const.UNASSIGNED    
+
+    def set_scheduled_dv_frac(self,fraction):
+        for dr in self.data_routes:
+            self.scheduled_dv_by_dr[dr] = self.data_vol_by_dr[dr]*fraction
+
+        self.has_scheduled_dv = True
+
+
+    def get_winds(self):
+        """ get the set of windows from all of the routes contained within this multi-route
+        
+        Returns the set of all windows from all the DataRoutes within. Note that this is a set, so each window only shows up once
+        :returns: [description]
+        :rtype: {[type]}
+        """
+
+        return set(wind for dr in self.data_routes for wind in dr.get_winds())
+
+    def get_obs( self):
+        #  use first route because all routes should have the same observation
+        return self.data_routes[0].get_obs()
+
+    def get_dlnk(self):
+        #  use first route because all routes should have the same downlink
+        return self.data_routes[0].get_dlnk()
+
+    def has_xlnk(self):
+        return any(dr.has_xlnk() for dr in self.data_routes)
+
+    def get_latency( self,units='minutes',obs_option = 'end', dlnk_option = 'center'):
+        return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
+
+    def get_display_string(self):
+        return 'scheduled_dv_by_dr: %s'%({'DR - '+dr.get_route_string():dv for dr,dv in self.scheduled_dv_by_dr.items()})
+
+    def __repr__(self):
+        # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
+        return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
+
+    def validate (self,time_option='start_end'):
+
+        # todo: remove this hack! It's for dealing with already-pickled RS outputs
+        try:
+            self.dv_epsilon
+        except AttributeError:
+            self.dv_epsilon = 1  # Mb
+
+        for dr in self.data_routes:
+            #  validate the data routes individually - this checks for temporal and data volume consistency within those routes
+            dr.validate(time_option)
+            #  validate that they all have the same initial observation and the same final downlink
+            assert(dr.get_obs() == self.get_obs())
+            assert(dr.get_dlnk() == self.get_dlnk())
+
+        avail_dv_by_wind = {}
+        # figure out what window data volume is already occupied by the data routes within self        
+        for dr in self.data_routes:
+            
+            for wind in dr.get_winds():
+                #  if we didn't yet encounter this window in any of the routes in self
+                avail_dv_by_wind.setdefault(wind,wind.data_vol)
+
+                avail_dv_by_wind[wind] -= dr.data_vol
+
+        #  check that for all of the windows in all of the routes, no window is oversubscribed
+        #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
+        for dv in avail_dv_by_wind.values():
+            assert(dv >= 0 - self.dv_epsilon)
+
+
+    def accumulate_dr( self, candidate_dr,min_dmr_candidate_dv=0):
+        """ add a simple data route to this data multi route
+        
+        [description]
+        :param dmrs: data multi routes to combine into a new multiroute
+        :type dmrs: list(DataMultiRoute)
+        """
+
+        # need to have matching observation and downlink for candidate to be added on to the multi-route
+        if not candidate_dr.get_obs() == self.get_obs():
+            return False
+        if not candidate_dr.get_dlnk() == self.get_dlnk():
+            return False
+
+        avail_dv_by_wind = {}
+         # figure out what window data volume is already occupied by the data routes within self        
+        for dr in self.data_routes:
+            for wind in dr.get_winds():
+                #  if we didn't yet encounter this window in any of the routes in self
+                avail_dv_by_wind.setdefault(wind,wind.data_vol)
+                avail_dv_by_wind[wind] -= dr.data_vol
+
+        #  figure out how much data volume can be allotted to the candidate data route
+        candidate_dv =candidate_dr.data_vol
+        for wind in candidate_dr.get_winds():
+            usable_wind_dv = min(avail_dv_by_wind.get(wind,wind.data_vol),candidate_dr.data_vol)
+
+            candidate_dv = min(candidate_dv, usable_wind_dv)
+
+        #  if there is enough data volume left, then add the data  route
+        if candidate_dv > min_dmr_candidate_dv:
+            self.data_routes.append(candidate_dr)
+            self.data_vol_by_dr[candidate_dr] = candidate_dv
+            self.scheduled_dv_by_dr[candidate_dr] = const.UNASSIGNED
+            return True
+        else:
+            return False
+
+    def get_data_storage_intervals(self):
+        storage_intervals = []
+
+        # we can do this independently because if this is a valid DMR, then the data volume (or bandwidth usage) for each route is mutex, and we don't have to worry about overlap
+        for dr in self.data_routes:
+            storage_intervals += dr.get_data_storage_intervals()
+
+        return storage_intervals
 
 class SimRouteContainer():
     """ This contains lower level data route objects, for use in the constellation simulation. It effectively allows the simulation to easily vary the amount of data volume, time scheduled for a data route, in order to flexibly replan in realtime. 
@@ -612,6 +599,17 @@ class SimRouteContainer():
                 winds_executable.append(wind)
 
         return winds_executable
+
+
+class LinkInfo():
+    """docstring fos  LinkInfo"""
+    def __init__(self,data_routes=[],total_data_vol=0,used_data_vol=0):
+        self.data_routes = data_routes
+        self.total_data_vol = total_data_vol
+        self.used_data_vol = used_data_vol
+
+    def __str__( self):
+        return  "routes: "+str(self.data_routes) + " ; dv %.0f/%.0f Mb" % ( self.used_data_vol, self.total_data_vol)
 
 
 
