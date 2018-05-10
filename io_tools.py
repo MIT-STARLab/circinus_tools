@@ -227,12 +227,32 @@ def get_transition_time_req(act1,act2,sat_indx1,sat_indx2,sat_activity_params):
 
      # get the transition time requirement between these activities
     try:
-        transition_time_req = sat_activity_params['transition_time_s'][trans_type][trans_name]
+        transition_time_req_s = sat_activity_params['transition_time_s'][trans_type][trans_name]
     # if not explicitly specified, go with default transition time requirement
     except KeyError:
-        transition_time_req = sat_activity_params['transition_time_s']["default"]
+        transition_time_req_s = sat_activity_params['transition_time_s']["default"]
 
-    return transition_time_req                        
+    return transition_time_req_s
+
+def get_max_transition_time_req(act1,sat_indx1,sat_indx2,sat_activity_params):
+    # todo: this code needs update to deal with more context-dependent transition times
+
+    trans_type = None
+    if sat_indx1==sat_indx2:
+        trans_type = 'intra-sat'
+    else:
+        trans_type = 'inter-sat'
+
+    act_code1 = act1.get_code(sat_indx1)
+    trans_part_name = act_code1+'-'
+
+     # get the max transition time requirement between these activities
+    try:
+        max_transition_time_req_s = max(time for key,time in sat_activity_params['transition_time_s'][trans_type].items() if trans_part_name in key)
+    except ValueError:
+        max_transition_time_req_s = sat_activity_params['transition_time_s']["default"]
+
+    return max_transition_time_req_s      
 
 
 

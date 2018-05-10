@@ -453,7 +453,7 @@ class DataMultiRoute():
         return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
 
     def get_display_string(self):
-        return 'scheduled_dv_by_dr: %s'%({'DR - '+dr.get_route_string():dv for dr,dv in self.scheduled_dv_by_dr.items()})
+        return 'sched/poss_dv_by_dr: %s'%({'DR - '+dr.get_route_string():'%d/%d'%(dv,self.data_vol_by_dr[dr]) for dr,dv in self.scheduled_dv_by_dr.items()})
 
     def __repr__(self):
         # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
