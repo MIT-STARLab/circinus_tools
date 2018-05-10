@@ -102,10 +102,10 @@ class ActivityWindow(EventWindow):
         
         updates the schedule duration for the window based upon the assumption that the data volume scheduled for the window is able to be transferred at an average data rate. Updated window times are based off of the center time of the window.
         """
-        old_duration = self.end - self.start
+        original_duration = self.original_end - self.original_start
 
-        if old_duration.total_seconds() < min_duration_s:
-            raise RuntimeWarning('Original duration (%f) is less than minimum allowed duration (%f) for %s'%(old_duration.total_seconds(),min_duration_s,self))
+        if original_duration.total_seconds() < min_duration_s:
+            raise RuntimeWarning('Original duration (%f) is less than minimum allowed duration (%f) for %s'%(original_duration.total_seconds(),min_duration_s,self))
 
         # note that accessing ave_data_rate below either uses the cached the original ave data rate, or caches it now
         scheduled_time_s = self.scheduled_data_vol/self.ave_data_rate
