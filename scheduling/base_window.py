@@ -15,19 +15,9 @@ class EventWindow():
 
         self.start = start
         self.end = end
-        # preserving a copy of original start/end for use later
-        self.original_start = start
-        self.original_end = end
         self.window_ID = window_ID
-        self.data_vol = const.UNASSIGNED
-        self.scheduled_data_vol = const.UNASSIGNED
-        self.remaining_data_vol = const.UNASSIGNED
 
         self._center_cache = None
-        self._ave_data_rate_cache = None
-
-        #  keeps track of if the start and end times of this window have been updated, for use as a safeguard
-        self.timing_updated = False
 
     def __hash__(self):
         return self.window_ID
@@ -38,14 +28,9 @@ class EventWindow():
     @property
     def center(self):
         #  adding this try except to deal with already pickled activity Windows
-        # TODO: remove this error checking later once all code solidified?
-        try:
-            if not self._center_cache:
-                self._center_cache = self.calc_center()
-            return self._center_cache
-        except AttributeError:
+        if not self._center_cache:
             self._center_cache = self.calc_center()
-            return self._center_cache
+        return self._center_cache
 
     @property
     def duration(self):
@@ -70,12 +55,17 @@ class ActivityWindow(EventWindow):
         :param int window_ID:  unique window ID used for hashing and comparing windows
         '''
 
+        # preserving a copy of original start/end for use later
         self.original_start = start
         self.original_end = end
         self.data_vol = const.UNASSIGNED
         self.scheduled_data_vol = const.UNASSIGNED
         self.remaining_data_vol = const.UNASSIGNED
 
+        # This holds a reference to the original window if this window was copied from another one.  used for restoring the original window from a copy
+        self.original_wind_ref = None
+
+        # Average data rate is assumed to be in seconds (for now)
         self._ave_data_rate_cache = None
 
         #  keeps track of if the start and end times of this window have been updated, for use as a safeguard
@@ -83,19 +73,31 @@ class ActivityWindow(EventWindow):
 
         super().__init__(start, end, window_ID)
 
+    def modify_time(self,new_dt,time_opt):
+        if time_opt == 'start':
+            #  populate the average data rate cache
+            ave_data_rate = self.ave_data_rate
+            self.timing_updated = True
+
+            center = self.center  # note: also populates _center cache
+            if new_dt > center:
+                raise RuntimeWarning('should not set start to after center time')
+
+            self.start = new_dt
+            self.end = center + (center-self.start)
+
+            # assuming linear reduction in data volume
+            self.data_vol = ave_data_rate * (self.end-self.start).total_seconds()
+
+        else:
+            raise NotImplementedError
+
     @property
     def ave_data_rate(self):
-        #  adding this try except to deal with already pickled activity Windows
-        # TODO: remove this error checking later once all code solidified?
-        try:
-            if not self._ave_data_rate_cache:
-                if self.timing_updated: raise RuntimeWarning('Trying to calculate average data rate after window timing has been updated')
-                self._ave_data_rate_cache =  self.data_vol / ( self.end - self.start).total_seconds ()
-            return self._ave_data_rate_cache
-        except AttributeError:
+        if not self._ave_data_rate_cache:
             if self.timing_updated: raise RuntimeWarning('Trying to calculate average data rate after window timing has been updated')
-            self._ave_data_rate_cache = self.data_vol / ( self.end - self.start).total_seconds ()
-            return self._ave_data_rate_cache
+            self._ave_data_rate_cache =  self.data_vol / ( self.end - self.start).total_seconds ()
+        return self._ave_data_rate_cache
 
     def update_duration_from_scheduled_dv( self,min_duration_s=10):
         """ update duration based on schedule data volume

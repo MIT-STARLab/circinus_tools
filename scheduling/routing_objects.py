@@ -100,6 +100,9 @@ class DataRoute():
 
         self.dv_epsilon = dv_epsilon
 
+        #  this maintains a list of the windows for which we've allowed an overlap at their start to exist in the route. this is used in the validation step
+        self.allowed_overlaps_start_wind = []
+
     def set_id(self,agent_ID,agent_ID_index):
         self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
@@ -228,9 +231,12 @@ class DataRoute():
 
         #  trace through the route and make sure: 1. we cross through satellites in order and 2.  every activity along the path starts after the last activity ended
         for windex, wind in  enumerate(self.route):
+            if wind.original_wind_ref is not None:
+                RuntimeWarning('found a copied window in data route (dr: %s)'%(self))
+
             if self.window_start_sats[wind] != next_sat_indx:
                 string = 'routing_objects.py: Found the incorrect sat indx at window indx %d in route. Route string: %s'%( windex, self.get_route_string())
-                raise RuntimeError(string)
+                raise RuntimeWarning(string)
             
             if time_option=='start_end':
                 time_valid = wind.start >= last_time and wind.end >= last_time
@@ -239,14 +245,18 @@ class DataRoute():
             else:
                 raise NotImplementedError
 
+            #  check if we have explicitly allowed this time overlap at the beginning of wind.  the overlap will be fixed in activity scheduling,  but for now we're explicitly allowing it because it was useful during route selection
+            if not time_valid and wind in self.allowed_overlaps_start_wind:
+                time_valid = True
+
             if not time_valid:
                 string ='routing_objects.py: Found a bad start time at window indx %d in route. Route string: %s'%( windex, self.get_route_string())
-                raise RuntimeError( string)
+                raise RuntimeWarning( string)
 
             #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
             if not self.data_vol <= wind.data_vol + self.dv_epsilon:
                 string ='routing_objects.py: Found bad dv at window indx %d in route. Allowable dv: %f. Route string: %s'%( windex, obs.data_vol*self.obs_dv_multiplier,str(self))
-                raise RuntimeError( string)
+                raise RuntimeWarning( string)
 
             #  note that we manually trace the satellite index through cross-link window here. This is a bit redundant with the functionality of window_start_sats,  but adds a little bit more of a warm, happy, comfortable feeling in the area checking
             if type (wind) is XlnkWindow:
@@ -257,7 +267,7 @@ class DataRoute():
                 #  if this happens to be a unidirectional window, and the current satellite index is not the transmitting satellite for that window, there's a problem
                 if not wind.symmetric and curr_sat_indx != wind.tx_sat:
                     string ='routing_objects.py: Found incorrect tx sat at window indx %d in route. Route string: %s'%( windex, self.get_route_string())
-                    raise RuntimeError(string)
+                    raise RuntimeWarning(string)
 
             if time_option=='start_end':
                 last_time = wind.end
@@ -357,6 +367,28 @@ class DataRoute():
             storage_intervals.append( SatStorageInterval(self.window_start_sats[wind2],wind1.start,wind2.end) )
 
         return storage_intervals
+
+    def fix_window_copies(self,reason='allow_overlap_start_wind'):
+        fixed_route = []
+        fixed_window_start_sats = {}
+        for wind in self.route:
+            fix_wind = wind
+            while fix_wind.original_wind_ref is not None:
+                fix_wind = fix_wind.original_wind_ref
+            fixed_route.append(fix_wind)
+
+            if reason == 'allow_overlap_start_wind':
+                #  we are replacing the copy window with its original.  the reason that we did this in the first place is contained within 'reason'
+                self.allowed_overlaps_start_wind.append(fix_wind)
+            else:
+                raise NotImplementedError
+
+            # This is to fix the keys in the window start sats struct. before fixing, the keys will still be be copied windows.  this isn't supercritical because the windows are looked up by hash, but could be confusing for developers down the road, so fix it now.
+            fixed_window_start_sats[fix_wind] = self.window_start_sats[fix_wind]
+
+        self.route = fixed_route
+        self.window_start_sats = fixed_window_start_sats
+
 
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects
