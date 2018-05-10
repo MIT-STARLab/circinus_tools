@@ -53,7 +53,10 @@ class ObsWindow(ActivityWindow):
     def __repr__(self):
         return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
 
-    def get_code(self):
+    def get_code(self,sat_indx):
+        # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
+        assert(sat_indx==self.sat_indx)
+
         return 'obs'
 
     def print_self(self):
@@ -147,7 +150,10 @@ class DlnkWindow(CommWindow):
     def __repr__(self):
         return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
 
-    def get_code(self):
+    def get_code(self,sat_indx):
+        # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
+        assert(sat_indx==self.sat_indx)
+
         return 'dlnk'
 
     def has_sat_indx(self,sat_indx):

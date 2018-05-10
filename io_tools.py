@@ -211,3 +211,30 @@ def parse_power_consumption_params(p_params):
     }
 
     return edot_by_mode,batt_storage,power_units
+
+def get_transition_time_req(act1,act2,sat_indx1,sat_indx2,sat_activity_params):
+    # todo: this code needs update to deal with more context-dependent transition times
+
+    trans_type = None
+    if sat_indx1==sat_indx2:
+        trans_type = 'intra-sat'
+    else:
+        trans_type = 'inter-sat'
+
+    act_code1 = act1.get_code(sat_indx1)
+    act_code2 = act2.get_code(sat_indx2)
+    trans_name = act_code1+'-'+act_code2
+
+     # get the transition time requirement between these activities
+    try:
+        transition_time_req = sat_activity_params['transition_time_s'][trans_type][trans_name]
+    # if not explicitly specified, go with default transition time requirement
+    except KeyError:
+        transition_time_req = sat_activity_params['transition_time_s']["default"]
+
+    return transition_time_req                        
+
+
+
+
+
