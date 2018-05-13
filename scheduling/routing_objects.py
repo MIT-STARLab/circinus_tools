@@ -81,7 +81,11 @@ class DataRoute():
     def __init__(self, agent_ID,agent_ID_index, route  =[], window_start_sats={},dv=0,dv_epsilon=1e-5,obs_dv_multiplier=1,ro_ID=None):
 
         if ro_ID:
+            if not type(ro_ID) == RoutingObjectID:
+                raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataRoute')
+
             self.ID = ro_ID
+
         else:
             self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
@@ -402,9 +406,12 @@ class DataMultiRoute():
     note that it is still valid to multiply the entire data volume of this route by a single utilization number from 0 to 1 to represent how much data volume is used from this multi-route. When constructing the multi-route, we ensure that no data volume from any given activity window is spoken for by multiple DataRoute objects within the multi-route; i.e.,  It's perfectly allowable to schedule all of the data routes within from a throughput perspective. the utilization number effectively carries through to multiply the data volumes of the individual data route objects.
     """
 
-    def __init__(self,agent_ID,agent_ID_index,data_routes,dv_epsilon=1e-5,ro_ID=None):
+    def __init__(self,ro_ID,data_routes,dv_epsilon=1e-5):
 
         if ro_ID:
+            if not type(ro_ID) == RoutingObjectID:
+                raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
+                
             self.ID = ro_ID
         else:
             self.ID = RoutingObjectID(agent_ID,agent_ID_index)
