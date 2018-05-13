@@ -103,7 +103,10 @@ class SchedIOProcessor():
             obs_start_indx = dc_target_IDs.get_ts_indx_from_t(obs_start)
             obs_end_indx = dc_target_IDs.get_ts_indx_from_t(obs_end)
 
-            for indx in range(obs_start_indx,obs_end_indx+1): #  make sure to include end index
+            # if we're at end of scenario, just discard that very last point. Should have unmeasurable effect on results
+            obs_end_indx = min(obs_end_indx,dc_target_IDs.num_timesteps-1)
+
+            for indx in range(obs_start_indx,obs_end_indx+1): #  make sure to include end index (because we are using "timesteps" here, which indicate that the obs is ongoing during the timestep)
                 dc_target_IDs.dancecard[indx] += obs.target_IDs
 
         curr_id_list = dc_target_IDs.dancecard[0]
