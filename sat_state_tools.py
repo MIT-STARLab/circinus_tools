@@ -1,15 +1,22 @@
-def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable_acts,sat_ecl_winds,parsed_sat_power_params):
+from datetime import timedelta
+
+from circinus_tools.scheduling.base_window  import find_window_in_wind_list
+
+def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable_acts,sat_ecl_winds,parsed_sat_power_params,delta_t_s):
+    """ propagate energy storage state forward from start time to end time, given lists of scheduled/executable activities and eclipse windows"""
+
     # note:  executable acts and eclipse windows should be sorted
     # note: this  code duplicates some of the functionality in SatStateSimulator update()
 
-    delta_t_h = blah
+    delta_t_h = delta_t_s/3600.0
+    delta_t_td = timedelta(seconds= delta_t_s)
 
     if start_time_dt > end_time_dt:
         raise RuntimeWarning('start_time_dt should not be > end_time_dt')
 
     # "new" is simply the next time step
     curr_time_dt = start_time_dt
-    new_time_dt = start_time_dt + delta_t_h
+    new_time_dt = start_time_dt + delta_t_td
 
     curr_act_windex = 0
     curr_ecl_windex = 0
@@ -18,12 +25,12 @@ def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable
 
     while new_time_dt <= end_time_dt:
 
-        curr_act = find_window_in_wind_list(curr_time_dt,curr_act_windex,executable_acts)
-        curr_ecl_wind = find_window_in_wind_list(curr_time_dt,curr_ecl_windex,sat_ecl_winds)
+        curr_act,curr_act_windex = find_window_in_wind_list(curr_time_dt,curr_act_windex,executable_acts)
+        curr_ecl_wind,curr_ecl_windex = find_window_in_wind_list(curr_time_dt,curr_ecl_windex,sat_ecl_winds)
 
         act_edot = 0
         if curr_act:
-            act_edot = curr_act.get_code(sat_indx) if type(curr_act) == XlnkWindow else curr_act.get_code()
+            act_edot = curr_act.get_code(sat_indx)
 
         #  base-level satellite energy usage (not including additional activities)
         base_edot = parsed_sat_power_params['sat_edot_by_mode']['base']
@@ -52,7 +59,7 @@ def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable
             break
 
         curr_time_dt = new_time_dt
-        new_time_dt += delta_t_h
+        new_time_dt += delta_t_td
         new_time_dt = min(new_time_dt, end_time_dt)
 
     return curr_ES_state,ES_state_went_below_min
