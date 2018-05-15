@@ -306,6 +306,8 @@ class SchedIOProcessor():
                 sat_ecl_winds.append(EclipseWindow(next_window_uid,start= start,end= end))
                 next_window_uid+=1
 
+            #  sort, just in case
+            sat_ecl_winds.sort(key = lambda w: w.start)
             ecl_winds.append(sat_ecl_winds)
 
         return ecl_winds, next_window_uid

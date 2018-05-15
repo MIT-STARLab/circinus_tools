@@ -141,6 +141,11 @@ class DataRoute():
 
         return False
 
+    def has_sat_indx(self,sat_indx):
+        for wind in self.route:
+            if wind.has_sat_indx(sat_indx): return True
+        return False
+
     @staticmethod
     def calc_latency(obs,dlnk,units='minutes',obs_option = 'end', dlnk_option = 'center'):
         lat_start = getattr(obs,obs_option)
@@ -457,6 +462,11 @@ class DataMultiRoute():
         else:
             return const.UNASSIGNED
 
+    def has_sat_indx(self,sat_indx):
+        for dr in self.data_routes:
+            if dr.has_sat_indx(sat_indx): return True
+        return False
+
     def scheduled_dv_for_wind(self,wind):
         if self.has_scheduled_dv:
             # note: don't check minimum data volume here because scheduled data volume could go to zero
@@ -636,14 +646,22 @@ class SimRouteContainer():
     def get_display_string(self):
         return 'utilization_by_dmr: %s'%({'DMR - '+dr.get_display_string():util for dr,util in self.dv_utilization_by_dr.items()})
 
+    def has_sat_indx(self,sat_indx):
+        for dmr in self.data_routes:
+            if dmr.has_sat_indx(sat_indx): return True
+        return False
 
-    def get_winds_executable(self):
+    def get_winds_executable(self,sat_indx=None):
         winds_executable = []
 
         for dmr in self.data_routes:
             winds = dmr.get_winds()
 
             for wind in winds:
+                #  test if this window is relevant for this satellite index
+                if (sat_indx is None) or not wind.has_sat_indx(sat_indx):
+                    continue
+
                 # make a deepcopy so we don't risk information crossing the ether in the simulation...
                 wind = deepcopy(wind)
                 wind.set_executable_properties(self,t_utilization_by_dr[dmr],dv_utilization_by_dr[dmr])

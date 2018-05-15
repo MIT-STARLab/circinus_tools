@@ -156,7 +156,7 @@ def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=s
     :rtype: {EventWindow,int}
     """
 
-    if start_windex is None:
+    if start_windex is None or len(wind_list) == 0:
         return None, None
 
     # move current act window possibility forward if we're past it, and we're not yet at end of schedule
