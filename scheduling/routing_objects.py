@@ -413,13 +413,10 @@ class DataMultiRoute():
 
     def __init__(self,ro_ID,data_routes,dv_epsilon=1e-5):
 
-        if ro_ID:
-            if not type(ro_ID) == RoutingObjectID:
-                raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
-                
-            self.ID = ro_ID
-        else:
-            self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+        if not type(ro_ID) == RoutingObjectID:
+            raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
+            
+        self.ID = ro_ID
 
         #  all of the "simple"  data route objects contained within this multi-route
         self.data_routes = data_routes
@@ -595,7 +592,12 @@ class SimRouteContainer():
 
     The use of this container is an artifact of the choice to model data routes as a series of activity windows of fixed start/end times. If we wish to change any of those start/end times, that would be reflected as a change in the underlying window object, but not in the data route object itself, which is not great. So we'd have to create a new data route object - which is not great for rescheduling because its harder to track the data route object as it gets passed around the constellation. By wrapping the data route in a container that can change its state, we have both timing/dv flexibility and persistent object indexing"""
 
-    def __init__(self,agent_ID,agent_ID_index,data_routes,t_utilization_by_dr,dv_utilization_by_dr,update_dt,ro_ID=None):
+    def __init__(self,ro_ID,data_routes,t_utilization_by_dr,dv_utilization_by_dr,update_dt):
+
+        if not type(ro_ID) == RoutingObjectID:
+            raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
+            
+        self.ID = ro_ID
 
         # handle case where we're only passed a single route (standard)
         if type(data_routes) == DataMultiRoute:
@@ -631,12 +633,12 @@ class SimRouteContainer():
         self.update_dt = update_dt
 
     @property
-    def start():
+    def start(self):
         # get earliest start of all dmrs
         return min(dmr.get_obs().start for dmr in self.data_routes)
 
     @property
-    def end():
+    def end(self):
         # get latest end of all dmrs
         return max(dmr.get_dlnk().end for dmr in self.data_routes)
 
@@ -651,7 +653,11 @@ class SimRouteContainer():
             if dmr.has_sat_indx(sat_indx): return True
         return False
 
-    def get_winds_executable(self,sat_indx=None):
+    def get_winds_executable(self,filter_start_dt=None,filter_end_dt=None,sat_indx=None):
+        """find and set the windows within this route container that are relevant for execution under a set of filters"""
+
+        # stores the filtered windows for execution, with their executable properties set
+        #  note: using a list here instead of a set because in general the list should be small and okay for membership checking
         winds_executable = []
 
         for dmr in self.data_routes:
@@ -661,10 +667,18 @@ class SimRouteContainer():
                 #  test if this window is relevant for this satellite index
                 if (sat_indx is None) or not wind.has_sat_indx(sat_indx):
                     continue
+                #  also apply any start and end filters if we want to
+                if filter_start_dt and wind.end < filter_start_dt:
+                    continue
+                if filter_end_dt and wind.start > filter_end_dt:
+                    continue
+
+                if wind in winds_executable:
+                    continue
 
                 # make a deepcopy so we don't risk information crossing the ether in the simulation...
                 wind = deepcopy(wind)
-                wind.set_executable_properties(self,t_utilization_by_dr[dmr],dv_utilization_by_dr[dmr])
+                wind.set_executable_properties(self.t_utilization_by_dr[dmr],self.dv_utilization_by_dr[dmr])
                 winds_executable.append(wind)
 
         return winds_executable

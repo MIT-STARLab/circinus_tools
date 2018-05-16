@@ -25,12 +25,17 @@ def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable
 
     while new_time_dt <= end_time_dt:
 
+        #  update time step if this is the last iteration, because the step might be smaller
+        if new_time_dt == end_time_dt:
+            delta_t_h = (end_time_dt-curr_time_dt).total_seconds()/3600.0
+
+        #  find current activity, current eclipse ( if available)
         curr_act,curr_act_windex = find_window_in_wind_list(curr_time_dt,curr_act_windex,executable_acts)
         curr_ecl_wind,curr_ecl_windex = find_window_in_wind_list(curr_time_dt,curr_ecl_windex,sat_ecl_winds)
 
         act_edot = 0
         if curr_act:
-            act_edot = curr_act.get_code(sat_indx)
+            act_edot = parsed_sat_power_params['sat_edot_by_mode'][curr_act.get_code(sat_indx)]
 
         #  base-level satellite energy usage (not including additional activities)
         base_edot = parsed_sat_power_params['sat_edot_by_mode']['base']
