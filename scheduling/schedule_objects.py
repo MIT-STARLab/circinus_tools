@@ -177,7 +177,7 @@ class Dancecard(object):
         else:
             raise NotImplementedError
 
-    def get_tp_indx_post_t(self,t,in_units='datetime'):
+    def get_tp_indx_post_t(self,t,in_units='datetime',ignore_out_of_bounds = False):
         """ get closest time point index following time t
         
         [description]
@@ -191,8 +191,10 @@ class Dancecard(object):
         """
 
         if in_units == 'datetime':
-            if t < self.dancecard_start_dt:
+            if not ignore_out_of_bounds and t < self.dancecard_start_dt:
                 raise ValueError('t (%s) is before dancecard start (%s)'%(t.isoformat(),self.dancecard_start_dt.isoformat()))
+            if not ignore_out_of_bounds and t > self.dancecard_end_dt:
+                raise ValueError('t (%s) is after dancecard end (%s)'%(t.isoformat(),self.dancecard_end_dt.isoformat()))
 
             return ceil((t - self.dancecard_start_dt).total_seconds() / self.tstep_sec)
         else:
@@ -321,7 +323,7 @@ class Dancecard(object):
         else:
             raise NotImplementedError
 
-    def add_winds_to_dancecard(self, winds):
+    def add_winds_to_dancecard(self, winds,drop_out_of_bounds=False):
         '''
         Add a set of windows to the dancecard according to their start and stop times
 
@@ -335,7 +337,7 @@ class Dancecard(object):
             raise RuntimeError("this method can't be used if this dancecard stores something other than lists")
 
         for wind in winds:
-            self.add_item_in_interval(wind, wind.start, wind.end)
+            self.add_item_in_interval(wind, wind.start, wind.end,drop_out_of_bounds)
 
             # act_start_indx = Dancecard.get_ts_indx(wind.start, self.dancecard_start_dt, self.tstep_sec)
             # act_end_indx = Dancecard.get_ts_indx(wind.end, self.dancecard_start_dt, self.tstep_sec)
@@ -352,18 +354,29 @@ class Dancecard(object):
             #     else:
             #         self.dancecard[indx].append(wind) 
 
-    def add_item_in_interval(self,item,start,end):
+    def add_item_in_interval(self,item,start,end,drop_out_of_bounds = False):
 
         if self.mode == 'timepoint':
+            dancecard_last_indx = self.num_timepoints - 1
+
             # round to nearest timepoint in the dancecard. Timestep should not be large enough that this will break things
             # (this is argued from a resource storage perspective) use post tp indx here so that if an activity overlaps at one timepoint with an activity before it, we won't end up overestimating the amount of resource requirement (assumption: two back to back actitivities that overlap at an infinitesimal point do not really overlap)
-            start_indx = self.get_tp_indx_post_t(start)
+            start_indx = self.get_tp_indx_post_t(start,drop_out_of_bounds)
             # use pre tp indx here to be consistent with above.
-            end_indx = self.get_tp_indx_pre_t(end)
+            end_indx = self.get_tp_indx_pre_t(end,drop_out_of_bounds)
 
-
+            start_indx = max(0, start_indx)
+            end_indx = min(dancecard_last_indx, end_indx)
+            
         elif self.mode == 'timestep':
             dancecard_last_indx = self.num_timesteps - 1
+
+            #  have to check these bounds here, because the get_ts_indx does no bounds checking (like get_tp_indx_post_t does do....whoops.)
+            if not drop_out_of_bounds:
+                if start < self.dancecard_start_dt:
+                    raise ValueError('start (%s) is before dancecard start (%s)'%(start.isoformat(),self.dancecard_start_dt.isoformat()))
+                if end > self.dancecard_end_dt:
+                    raise ValueError('end (%s) is after dancecard end (%s)'%(end.isoformat(),self.dancecard_end_dt.isoformat()))
 
             # todo: this usage of static method is a little stuffy, should update at some point to look like above code for timepoint
             start_indx = Dancecard.get_ts_indx(start, self.dancecard_start_dt, self.tstep_sec)
