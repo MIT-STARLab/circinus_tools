@@ -156,7 +156,7 @@ class Dancecard(object):
         else:
             raise NotImplementedError
 
-    def get_tp_indx_pre_t(self,t,in_units='datetime'):
+    def get_tp_indx_pre_t(self,t,in_units='datetime',ignore_out_of_bounds = False):
         """ get closest time point index preceding time t
         
         [description]
@@ -170,8 +170,10 @@ class Dancecard(object):
         """
 
         if in_units == 'datetime':
-            if t < self.dancecard_start_dt:
+            if not ignore_out_of_bounds and t < self.dancecard_start_dt:
                 raise ValueError('t (%s) is before dancecard start (%s)'%(t.isoformat(),self.dancecard_start_dt.isoformat()))
+            if not ignore_out_of_bounds and t > self.dancecard_end_dt:
+                raise ValueError('t (%s) is after dancecard end (%s)'%(t.isoformat(),self.dancecard_end_dt.isoformat()))
 
             return floor((t - self.dancecard_start_dt).total_seconds() / self.tstep_sec)
         else:
@@ -361,9 +363,9 @@ class Dancecard(object):
 
             # round to nearest timepoint in the dancecard. Timestep should not be large enough that this will break things
             # (this is argued from a resource storage perspective) use post tp indx here so that if an activity overlaps at one timepoint with an activity before it, we won't end up overestimating the amount of resource requirement (assumption: two back to back actitivities that overlap at an infinitesimal point do not really overlap)
-            start_indx = self.get_tp_indx_post_t(start,drop_out_of_bounds)
+            start_indx = self.get_tp_indx_post_t(start,ignore_out_of_bounds= drop_out_of_bounds)
             # use pre tp indx here to be consistent with above.
-            end_indx = self.get_tp_indx_pre_t(end,drop_out_of_bounds)
+            end_indx = self.get_tp_indx_pre_t(end,ignore_out_of_bounds= drop_out_of_bounds)
 
             start_indx = max(0, start_indx)
             end_indx = min(dancecard_last_indx, end_indx)
