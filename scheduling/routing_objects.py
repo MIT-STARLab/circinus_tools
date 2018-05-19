@@ -2,7 +2,7 @@
 # 
 # @author Kit Kennedy
 
-from copy import copy,deepcopy
+from copy import copy
 
 from circinus_tools  import  constants as const
 from .custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
@@ -685,6 +685,8 @@ class SimRouteContainer():
     #     self.dv_utilization_by_dr_id[update_dr.ID] = dr_dv_util
     #     self.update_dt = update_dt
 
+    ExecutableWind = namedtuple('ExecutableWind', 'wind t_utilization dv_utilization') 
+
     def get_winds_executable(self,filter_start_dt=None,filter_end_dt=None,sat_indx=None):
         """find and set the windows within this route container that are relevant for execution under a set of filters"""
 
@@ -705,13 +707,19 @@ class SimRouteContainer():
                 if filter_end_dt and wind.start > filter_end_dt:
                     continue
 
-                if wind in winds_executable:
-                    continue
+                # if wind in winds_executable:
+                #     continue
 
                 # make a deepcopy so we don't risk information crossing the ether in the simulation...
-                wind = deepcopy(wind)
-                wind.set_executable_properties(self.t_utilization_by_dr_id[dmr.ID],self.dv_utilization_by_dr_id[dmr.ID])
-                winds_executable.append(wind)
+                # wind = deepcopy(wind)
+                # wind.set_executable_properties(self.t_utilization_by_dr_id[dmr.ID],self.dv_utilization_by_dr_id[dmr.ID])
+                winds_executable.append(
+                    self.ExecutableWind(
+                        wind=wind,
+                        t_utilization=self.t_utilization_by_dr_id[dmr.ID],
+                        dv_utilization=self.dv_utilization_by_dr_id[dmr.ID]
+                    )
+                )
 
         return winds_executable
 
