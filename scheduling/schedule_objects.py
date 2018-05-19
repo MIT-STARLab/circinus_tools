@@ -339,7 +339,7 @@ class Dancecard(object):
             raise RuntimeError("this method can't be used if this dancecard stores something other than lists")
 
         for wind in winds:
-            self.add_item_in_interval(wind, wind.start, wind.end,drop_out_of_bounds)
+            self.add_item_in_interval(wind, wind.original_start, wind.original_end,drop_out_of_bounds)
 
             # act_start_indx = Dancecard.get_ts_indx(wind.start, self.dancecard_start_dt, self.tstep_sec)
             # act_end_indx = Dancecard.get_ts_indx(wind.end, self.dancecard_start_dt, self.tstep_sec)
@@ -423,8 +423,8 @@ class Dancecard(object):
         dancecard_last_indx = self.num_timesteps - 1
 
         for wind in winds:
-            act_start_indx = Dancecard.get_ts_indx(wind.start, self.dancecard_start_dt, self.tstep_sec)
-            act_end_indx = Dancecard.get_ts_indx(wind.end, self.dancecard_start_dt, self.tstep_sec)
+            act_start_indx = Dancecard.get_ts_indx(wind.original_start, self.dancecard_start_dt, self.tstep_sec)
+            act_end_indx = Dancecard.get_ts_indx(wind.original_end, self.dancecard_start_dt, self.tstep_sec)
 
             act_start_indx = max(0, act_start_indx)
             act_end_indx = min(dancecard_last_indx, act_end_indx)

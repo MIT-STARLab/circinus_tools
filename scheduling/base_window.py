@@ -59,6 +59,8 @@ class ActivityWindow(EventWindow):
         self.original_start = start
         self.original_end = end
         self.data_vol = const.UNASSIGNED
+        #  scheduled data volume is the amount of data volume used for this window in the global planner.
+        #  note that this value should NEVER be used in constellation sim code, directly or indirectly.  it is updated in the global planner, so if it is accessed on a satellite that could constitute "instantaneous" propagation of information from the global planner to the satellite
         self.scheduled_data_vol = const.UNASSIGNED
         self.remaining_data_vol = const.UNASSIGNED
 
@@ -104,6 +106,8 @@ class ActivityWindow(EventWindow):
         
         updates the schedule duration for the window based upon the assumption that the data volume scheduled for the window is able to be transferred at an average data rate. Updated window times are based off of the center time of the window.
         """
+        #  note this function should never be used in the constellation sim code, because the self.scheduled_data_vol value can't be trusted
+
         original_duration = self.original_end - self.original_start
 
         if original_duration.total_seconds() < min_duration_s:
@@ -121,20 +125,21 @@ class ActivityWindow(EventWindow):
         # mark that timing has been updated
         self.timing_updated = True
 
-    def set_executable_properties(self,t_utilization,dv_utilization):
+    def set_executable_properties(self,dv_used,dv_epsilon=1e-5):
         """Set properties for final execution of the window"""
 
-        if not t_utilization == dv_utilization:
-            raise RuntimeWarning("Saw different t_utilization (%f) than dv_utilization (%f). This is not supported in current scheduling approach"%(t_utilization,dv_utilization))
+        assert(dv_used <= self.data_vol + dv_epsilon)
 
-        old_duration = self.end - self.start
+        old_duration = self.original_end - self.original_start
 
+        #  assume for now a linear correlation between time utilization and data volume utilization
+        t_utilization = dv_used/self.data_vol if self.data_vol > dv_epsilon else 0.0
         executable_duration = old_duration*t_utilization
 
         self.executable_start = self.center - executable_duration/2
         self.executable_end = self.center + executable_duration/2
 
-        self.executable_data_vol = self.scheduled_data_vol*dv_utilization
+        self.executable_data_vol = dv_used
 
 
 def standard_time_accessor(wind,time_prop):
