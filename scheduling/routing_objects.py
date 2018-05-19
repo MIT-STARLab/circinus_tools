@@ -149,7 +149,7 @@ class DataRoute():
             if wind.has_sat_indx(sat_indx): return True
         return False
 
-        @staticmethod
+    @staticmethod
     def calc_latency(obs,dlnk,units='minutes',obs_option = 'original_end', dlnk_option = 'center'):
         lat_start = getattr(obs,obs_option)
         lat_end = getattr(dlnk,dlnk_option)

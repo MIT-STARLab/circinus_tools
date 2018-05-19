@@ -325,21 +325,29 @@ class Dancecard(object):
         else:
             raise NotImplementedError
 
-    def add_winds_to_dancecard(self, winds,drop_out_of_bounds=False):
+    def add_winds_to_dancecard(self, winds,wind_time_getter_func=None,drop_out_of_bounds=False):
         '''
         Add a set of windows to the dancecard according to their start and stop times
 
         :param winds: list of windows to add. Can be a list with a single element, of course
         :return:
         '''
+
+        
         if self.mode == 'timepoint':
             raise RuntimeError("this method can't be used in timepoint mode")
 
         if not self.item_type == list:
             raise RuntimeError("this method can't be used if this dancecard stores something other than lists")
 
+        if not wind_time_getter_func:
+            def wind_time_getter_reg(wind,time_opt):
+                if time_opt == 'start': return wind.start
+                if time_opt == 'end': return wind.end
+            wind_time_getter_func = wind_time_getter_reg
+
         for wind in winds:
-            self.add_item_in_interval(wind, wind.original_start, wind.original_end,drop_out_of_bounds)
+            self.add_item_in_interval(wind, wind_time_getter_func(wind,'start'), wind_time_getter_func(wind,'end'),drop_out_of_bounds)
 
             # act_start_indx = Dancecard.get_ts_indx(wind.start, self.dancecard_start_dt, self.tstep_sec)
             # act_end_indx = Dancecard.get_ts_indx(wind.end, self.dancecard_start_dt, self.tstep_sec)
