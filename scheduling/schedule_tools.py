@@ -5,6 +5,7 @@ def synthesize_executable_acts(rt_conts,filter_start_dt=None,filter_end_dt=None,
     """ go through all of the route containers and synthesize a list of unique windows to execute with the correct time and the data volume utilization"""
 
     # First we need to find all of the executable versions of each activity window contained anywhere in the data routes in the route containers.
+    # note!  there may be duplicate copies of wind residing within the executable Windows objects.  in general this is okay though because we use their window ID hash for lookup
     exec_winds_by_wind = {}
     for rt_cont in rt_conts:
         # this is an iterable of type SimRouteContainer.ExecutableWind
