@@ -425,7 +425,7 @@ class DataMultiRoute():
         self.ID = ro_ID
 
         #  all of the "simple"  data route objects contained within this multi-route
-        self.data_routes = data_routes
+        self.data_routes = [data_route for data_route in data_routes] 
         #  this map holds the amount of data volume we have allocated to each of the data routes within this multi-route. we initially create it with all of the data volume from the initializer data routes, but it is not necessarily the case that the data volume numbers within this dict will be the same as the data volume numbers within the individual data route objects
         self.data_vol_by_dr = {dr:dr.data_vol for dr in data_routes}
         self.scheduled_dv_by_dr = {dr:const.UNASSIGNED for dr in data_routes}
@@ -441,12 +441,10 @@ class DataMultiRoute():
                 raise RuntimeError('only data route objects should be used to construct a new data multi-route')
 
     def __copy__(self):
-        newone = type(self)(None,None,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier,ro_ID=copy(self.ID))
-        #  make a shallow copy of these container objects -  we want to refer to the same nested objects within the containers, but want a new container in both cases
-        newone.route = copy(self.route)
-        newone.window_start_sats = copy(self.window_start_sats)
-        newone.dv_epsilon = self.dv_epsilon
-        newone.allowed_overlaps_start_wind = copy(self.allowed_overlaps_start_wind)
+
+        data_routes = [copy(data_route) for data_route in self.data_routes]
+        # note: no need to copy ID
+        newone = type(self)(self.ID,data_routes,self.dv_epsilon)
         return newone
 
     def __hash__(self):

@@ -384,9 +384,9 @@ class Dancecard(object):
             #  have to check these bounds here, because the get_ts_indx does no bounds checking (like get_tp_indx_post_t does do....whoops.)
             if not drop_out_of_bounds:
                 if start < self.dancecard_start_dt:
-                    raise ValueError('start (%s) is before dancecard start (%s)'%(start.isoformat(),self.dancecard_start_dt.isoformat()))
+                    raise ValueError('start (%s) is before dancecard start (%s) (item: %s)'%(start.isoformat(),self.dancecard_start_dt.isoformat(),item))
                 if end > self.dancecard_end_dt:
-                    raise ValueError('end (%s) is after dancecard end (%s)'%(end.isoformat(),self.dancecard_end_dt.isoformat()))
+                    raise ValueError('end (%s) is after dancecard end (%s) (item: %s)'%(end.isoformat(),self.dancecard_end_dt.isoformat(),item))
 
             # todo: this usage of static method is a little stuffy, should update at some point to look like above code for timepoint
             start_indx = Dancecard.get_ts_indx(start, self.dancecard_start_dt, self.tstep_sec)
