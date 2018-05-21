@@ -166,7 +166,7 @@ def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=s
 
     # move current act window possibility forward if we're past it, and we're not yet at end of schedule
     # -1 so we only advance if we're not yet at the end
-    while start_windex < len(wind_list)-1 and curr_time_dt > wind_list[start_windex].end:
+    while start_windex < len(wind_list)-1 and curr_time_dt > time_accessor(wind_list[start_windex],'end'):
         start_windex += 1
 
     wind_possible = wind_list[start_windex]

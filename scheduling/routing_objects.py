@@ -633,7 +633,9 @@ class SimRouteContainer():
 
     The use of this container is an artifact of the choice to model data routes as a series of activity windows of fixed start/end times. If we wish to change any of those start/end times, that would be reflected as a change in the underlying window object, but not in the data route object itself, which is not great. So we'd have to create a new data route object - which is not great for rescheduling because its harder to track the data route object as it gets passed around the constellation. By wrapping the data route in a container that can change its state, we have both timing/dv flexibility and persistent object indexing"""
 
-    def __init__(self,ro_ID,data_routes,dv_utilization_by_dr_id,update_dt):
+    # note that i put the mechanisms in place here to have multiple DMRs in a single sim route container, but I don't use that capability currently. Mildly regretting doing so...
+
+    def __init__(self,ro_ID,data_routes,dv_utilization_by_dr_id,creation_dt,update_dt):
 
         if not type(ro_ID) == RoutingObjectID:
             raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
@@ -675,6 +677,10 @@ class SimRouteContainer():
         # this is the "data volume utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the scheduled data volume for every window in the route should be multiplied to determine how much data volume will actually be throughput on this dr in the real, final schedule
         self.dv_utilization_by_dr_id = dv_utilization_by_dr_id
         self.update_dt = update_dt
+        self.creation_dt = creation_dt
+
+        # allowable difference in utilization before a DMR is considered "changed" in utilization
+        self.dv_utilization_epsilon = 0.001
 
     @property
     def start(self):
@@ -687,7 +693,9 @@ class SimRouteContainer():
         return max(dmr.end for dmr in self.drs_by_id.values())
 
     def __repr__(self):
-        return '(SRC %s, t %s: %s)'%(self.ID,short_date_string(self.update_dt),self.get_display_string())
+        creation_dt_str = short_date_string(self.creation_dt) if self.creation_dt else 'None'
+        update_dt_str = short_date_string(self.update_dt) if self.update_dt else 'None'
+        return '(SRC %s, ct %s, ut %s: %s)'%(self.ID,creation_dt_str,update_dt_str,self.get_display_string())
 
     def get_display_string(self):
         return 'utilization_by_dmr: %s'%({'DMR %s - '%(dr_id) +self.drs_by_id[dr_id].get_display_string():util for dr_id,util in self.dv_utilization_by_dr_id.items()})
@@ -705,6 +713,25 @@ class SimRouteContainer():
         #  for now, just grab the DV epsilon of the first route
         return list(self.drs_by_id.values())[0].dv_epsilon
 
+    def set_times_safe(self,update_dt):
+        """Set the update and creation times, if they have not already been set"""
+        if self.update_dt is None:
+            self.update_dt = update_dt
+        if self.creation_dt is None:
+            self.creation_dt = update_dt
+
+    def not_updated_check(self,dmr,dmr_dv_util):
+        """Returns true if self is not updated; that is, utilization for contained datamultiroute has not changed significantly"""
+
+        if not type(dmr) == DataMultiRoute:
+            raise NotImplementedError
+
+        # sanity check that the same DMR is actually here
+        assert(dmr.ID in self.drs_by_id.keys())
+
+        return (abs(self.dv_utilization_by_dr_id[dmr.ID] - dmr_dv_util) < self.dv_utilization_epsilon)
+
+
     #  note: should not be using this function to update route containers ( the objects should be replaced)
     # def update_route(self,update_dr,dr_t_util,dr_dv_util,update_dt):
     #     #  note the implicit check here that the update DR is already present within this object
@@ -712,9 +739,6 @@ class SimRouteContainer():
     #     self.t_utilization_by_dr_id[update_dr.ID] = dr_t_util
     #     self.dv_utilization_by_dr_id[update_dr.ID] = dr_dv_util
     #     self.update_dt = update_dt
-
-    # dv_used is the amount of data volume used for this window within the route in which the wind was found
-    ExecutableWind = namedtuple('ExecutableWind', 'wind dv_used rt_cont') 
 
     def get_winds_executable(self,filter_start_dt=None,filter_end_dt=None,sat_indx=None):
         """find and set the windows within this route container that are relevant for execution under a set of filters"""
@@ -745,17 +769,48 @@ class SimRouteContainer():
 
                 #  create a new executable window entry, which specifies both the window and the amount of data volume used from it for this route
                 winds_executable.append(
-                    self.ExecutableWind(
+                    ExecutableActivity(
                         wind=wind,
                         # t_utilization=self.t_utilization_by_dr_id[dmr.ID],
+                        rt_conts=[self],
                         dv_used=self.dv_utilization_by_dr_id[dmr.ID]*dmr.data_vol,
-                        rt_cont=self
                     )
                 )
 
         return winds_executable
 
 
+class ExecutableActivity():
+    """ this is an object that keeps track of an activity window, and the route containers (with their underlying data routes) whose executions are the reason why the activity window is being performed. this helps us keep track of why a window is being performed and where data goes to and arrives from"""
+
+    def __init__(self,wind,rt_conts,dv_used):
+        #  the activity window for this object
+        self.wind =  wind
+        # rt_conts are the route containers for the window
+        self.rt_conts =  rt_conts
+        # dv_used is the amount of data volume used for this window within the route in which the wind was found
+        self.dv_used =  dv_used
+
+    def __hash__(self):
+        # xor the components together
+        return hash(self.wind)
+
+    def __eq__(self, other):
+        """this compares equality based on the activity window"""
+        return hash(self) == hash(other)
+
+    def __repr__(self):
+        return "(ExecAct, wind: %s, # rt_conts: %d)"%(self.wind,len(self.rt_conts))
+
+    @property
+    def act(self):
+        return self.wind
+
+    @property
+    def dv_epsilon(self):
+        #  just grab the dv epsilon from the first route container
+        return self.rt_conts[0].get_dv_epsilon()
+    
 class LinkInfo():
     """docstring fos  LinkInfo"""
     def __init__(self,data_routes=[],total_data_vol=0,used_data_vol=0):
