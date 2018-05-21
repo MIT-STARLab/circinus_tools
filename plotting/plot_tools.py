@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import savefig
 from matplotlib.patches import Rectangle, Circle
 
+from circinus_tools import debug_tools
+
 def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot_params,label_getter,color_getter=None):
 
     viz_object_rotator_hist = sat_plot_params['viz_object_rotator_hist']
@@ -300,7 +302,7 @@ def plot_all_sats_acts(
                 "viz_object_rotator_hist": obs_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.5,
+                "label_vert_bottom_base_offset": 0.1,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
@@ -310,6 +312,7 @@ def plot_all_sats_acts(
             obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
             if len(obs_viz_objects) > 0:
                 o_w_obj = obs_viz_objects[-1]
+
 
 
         ##########################
@@ -354,12 +357,12 @@ def plot_all_sats_acts(
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
-                "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
+                "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
                 "label_vert_bottom_base_offset": 0.5,
                 "label_vert_spacing": 0.2,
-                "label_rotator_hist": dlnk_label_rotator_hist,
+                "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
                 "plot_original_times": plot_original_times_regular,
             }
@@ -371,6 +374,7 @@ def plot_all_sats_acts(
         # plot the executed down links
         if plot_dlnks and sats_dlnk_winds is not None:
             def label_getter(dlnk):
+                # todo: scheduled data vol here is deprecated
                 return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
 
             sat_plot_params = {
@@ -400,6 +404,7 @@ def plot_all_sats_acts(
         # plot the observations that are actually executed
         if plot_obs and sats_obs_winds is not None:
             def label_getter(obs):
+                # todo: scheduled data vol here is deprecated
                 return "obs %d, dv %d/%d"%(obs_count,obs.scheduled_data_vol,obs.data_vol)
 
             sat_plot_params = {
@@ -415,7 +420,7 @@ def plot_all_sats_acts(
                 "viz_object_rotator_hist": obs_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.5,
+                "label_vert_bottom_base_offset": 0.1,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
@@ -461,6 +466,139 @@ def plot_all_sats_acts(
         legend_objects_labels.append('Obs')
 
     plt.legend(legend_objects, legend_objects_labels ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    plt.xlabel('Time (%s)'%(time_units))
+
+    # use the last axes to set the entire plot background color
+    axes.patch.set_facecolor('w')
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)
+
+
+def plot_energy_usage(
+        sats_ids_list,
+        energy_usage,
+        ecl_winds,
+        plot_params):
+
+    plot_labels = {
+        "e usage": "e usage",
+        "e max": "e max",
+        "e min": "e min",
+        "ecl": "ecl"
+    }
+
+    plot_start_dt = plot_params['plot_start_dt']
+    plot_end_dt = plot_params['plot_end_dt']
+    base_time_dt = plot_params['base_time_dt']
+    sat_id_order = plot_params['sat_id_order']
+    sats_emin_Wh = plot_params['sats_emin_Wh']
+    sats_emax_Wh = plot_params['sats_emax_Wh']
+    energy_usage_plot_params = plot_params['energy_usage_plot_params']
+
+    plot_title = plot_params.get('plot_title','Activities Plot')
+    plot_size_inches = plot_params.get('plot_size_inches',(12,12))
+    show = plot_params.get('show',False)
+    fig_name = plot_params.get('fig_name','plots/xlnk_dlnk_plot.pdf')
+    time_units = plot_params.get('time_units','minutes')
+    plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
+
+
+    if time_units == 'hours':
+        time_divisor = 3600
+    if time_units == 'minutes':
+        time_divisor = 60
+    
+    # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
+    start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
+    end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
+
+    num_sats = len(sats_ids_list)
+
+    #  make a new figure
+    plt.figure()
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+    # print fig.get_size_inches()
+
+    #  these hold the very last plot object of a given type added. Used for legend below
+    e_usage_plot = None
+    e_max_plot = None
+    e_min_plot = None
+    ecl_plot = None
+
+    # for each agent
+    first_sat = True
+    for  plot_indx, sat_id in enumerate (sats_ids_list):
+        #  get the index for this ID
+        sat_indx = sat_id_order.index(str(sat_id))
+
+        #  make a subplot for each
+        axes = plt.subplot( num_sats,1,plot_indx+1)
+        if plot_indx == floor(num_sats/2):
+            plt.ylabel('Satellite Index\n\n' + str(sat_indx))
+        else:
+            plt.ylabel('' + str(sat_indx))
+
+
+        # no y-axis labels
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left='off',
+            right='off',
+            labelleft='off'
+        )
+
+        # set axis length.
+        vert_min = energy_usage_plot_params['plot_bound_e_min_Wh_delta']+sats_emin_Wh[sat_indx]
+        vert_max = energy_usage_plot_params['plot_bound_e_max_Wh_delta']+sats_emax_Wh[sat_indx]
+        plt.axis((start_time, end_time, vert_min, vert_max))
+
+        current_axis = plt.gca()
+
+        # the first return value is a handle for our line, everything else can be ignored
+        if energy_usage:
+            e_time = [e_t + start_time for e_t in energy_usage['time_mins'][sat_indx]]
+            e_usage_plot,*dummy = plt.plot(e_time,energy_usage['e_sats'][sat_indx], label =  plot_labels["e usage"])
+
+        if energy_usage_plot_params['include_eclipse_windows']:
+            for ecl_wind in ecl_winds[sat_indx]:
+                ecl_wind_start = (ecl_wind.start- base_time_dt).total_seconds()/time_divisor
+                ecl_wind_end = (ecl_wind.end-base_time_dt).total_seconds()/time_divisor
+
+                height = vert_max-vert_min
+                ecl_plot = Rectangle((ecl_wind_start, vert_min), ecl_wind_end-ecl_wind_start, vert_min+height,alpha=0.3,fill=True,color='#202020',label= plot_labels["ecl"])
+
+                current_axis.add_patch(ecl_plot)
+
+        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_sats:
+            ax = plt.gca()
+            plt.setp(ax.get_xticklabels(), visible=False)
+
+        if first_sat:
+            plt.title(plot_title)
+
+        first_sat = False
+
+
+    legend_objects = []
+    if e_usage_plot: 
+        legend_objects.append(e_usage_plot)
+    if e_max_plot: 
+        legend_objects.append(e_max_plot)
+    if e_min_plot: 
+        legend_objects.append(e_min_plot)
+    if ecl_plot: 
+        legend_objects.append(ecl_plot)
+
+    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
     plt.xlabel('Time (%s)'%(time_units))
 

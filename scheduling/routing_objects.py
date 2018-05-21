@@ -728,7 +728,7 @@ class SimRouteContainer():
 
             for wind in winds:
                 #  test if this window is relevant for this satellite index
-                if (sat_indx is None) or not wind.has_sat_indx(sat_indx):
+                if (sat_indx is not None) and not wind.has_sat_indx(sat_indx):
                     continue
                 #  also apply any start and end filters if we want to
                 if filter_start_dt and wind.end < filter_start_dt:
