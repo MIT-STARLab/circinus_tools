@@ -12,7 +12,7 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
     label_rotator_hist = sat_plot_params['label_rotator_hist']
 
     base_time_dt = sat_plot_params['base_time_dt']
-    t_choice = sat_plot_params['plot_original_times']
+    t_opt = sat_plot_params['plot_act_time_option']
 
     viz_objects = []
 
@@ -23,12 +23,12 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
     if winds and len(winds) > 0:
         for wind in winds:
 
-            act_start = (get_start_func(wind,t_choice)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
-            act_end = (get_end_func(wind,t_choice)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+            act_start = (get_start_func(wind,t_opt)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+            act_end = (get_end_func(wind,t_opt)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
 
             #  check if the activity is out of the time bounds for the plot or overlapping them
-            out_of_bounds = get_end_func(wind,t_choice) < sat_plot_params['plot_start_dt'] or get_start_func(wind,t_choice) > sat_plot_params['plot_end_dt']
-            overlapping_bounds = get_start_func(wind,t_choice) < sat_plot_params['plot_start_dt'] or get_end_func(wind,t_choice) > sat_plot_params['plot_end_dt']
+            out_of_bounds = get_end_func(wind,t_opt) < sat_plot_params['plot_start_dt'] or get_start_func(wind,t_opt) > sat_plot_params['plot_end_dt']
+            overlapping_bounds = get_start_func(wind,t_opt) < sat_plot_params['plot_start_dt'] or get_end_func(wind,t_opt) > sat_plot_params['plot_end_dt']
 
             if out_of_bounds:
                 continue
@@ -110,6 +110,7 @@ def plot_all_sats_acts(
     plot_include_labels = plot_params.get('plot_include_labels',False)
     plot_original_times_choices = plot_params.get('plot_original_times_choices',True)
     plot_original_times_regular = plot_params.get('plot_original_times_regular',False)
+    plot_executable_times_regular = plot_params.get('plot_executable_times_regular',False)
     show = plot_params.get('show',False)
     fig_name = plot_params.get('fig_name','plots/xlnk_dlnk_plot.pdf')
     time_units = plot_params.get('time_units','minutes')
@@ -122,10 +123,21 @@ def plot_all_sats_acts(
     plot_dlnks = plot_params.get('plot_dlnks',False)
     plot_obs = plot_params.get('plot_obs',False)
 
+    xlnk_label_getter = plot_params.get('xlnk_label_getter_func',False)
+    dlnk_label_getter = plot_params.get('dlnk_label_getter_func',False)
+    obs_label_getter = plot_params.get('obs_label_getter_func',False)
+
     xlnk_route_index_to_use = plot_params.get('xlnk_route_index_to_use',0)
     xlnk_color_rollover = plot_params.get('xlnk_color_rollover',1)
     xlnk_colors = plot_params.get('xlnk_colors',['#FF0000'])
 
+    plot_t_opt_choices = 'original' if plot_original_times_choices else 'normal'
+    if plot_original_times_regular:
+        plot_t_opt_exec = 'original'
+    elif plot_executable_times_regular:
+        plot_t_opt_exec = 'executable'
+    else:
+        plot_t_opt_exec = 'normal'
 
     fontsize_obs = 10
     fontsize_dlnk = 7
@@ -155,15 +167,19 @@ def plot_all_sats_acts(
     # keep a running list of all the window IDs seen,  which we'll use for a sanity check
     all_wind_ids = []
 
-    def get_start(wind,plot_original_times):
-        if plot_original_times:
+    def get_start(wind,time_opt):
+        if time_opt == 'original':
             return wind.original_start
+        if time_opt == 'executable':
+            return wind.executable_start
         else:
             return wind.start
 
-    def get_end(wind,plot_original_times):
-        if plot_original_times:
+    def get_end(wind,time_opt):
+        if time_opt == 'original':
             return wind.original_end
+        if time_opt == 'executable':
+            return wind.executable_end
         else:
             return wind.end
 
@@ -254,7 +270,7 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
-                "plot_original_times": plot_original_times_choices,
+                "plot_act_time_option": plot_t_opt_choices,
             }
 
             xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
@@ -280,7 +296,7 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
-                "plot_original_times": plot_original_times_choices,
+                "plot_act_time_option": plot_t_opt_choices,
             }
 
             dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
@@ -306,7 +322,7 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
-                "plot_original_times": plot_original_times_choices,
+                "plot_act_time_option": plot_t_opt_choices,
             }
 
             obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
@@ -364,8 +380,10 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
-                "plot_original_times": plot_original_times_regular,
+                "plot_act_time_option": plot_t_opt_exec,
             }
+
+            label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
 
             xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter)
             if len(xlnk_viz_objects) > 0:
@@ -394,8 +412,10 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
-                "plot_original_times": plot_original_times_regular,
+                "plot_act_time_option": plot_t_opt_exec,
             }
+
+            label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
 
             dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter=None)
             if len(dlnk_viz_objects) > 0:
@@ -424,8 +444,10 @@ def plot_all_sats_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
-                "plot_original_times": plot_original_times_regular,
+                "plot_act_time_option": plot_t_opt_exec,
             }
+
+            label_getter = obs_label_getter if obs_label_getter else label_getter
 
             obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter=None)
             if len(obs_viz_objects) > 0:
