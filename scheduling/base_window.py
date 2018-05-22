@@ -126,7 +126,7 @@ class ActivityWindow(EventWindow):
         self.timing_updated = True
 
     def set_executable_properties(self,dv_used,dv_epsilon=1e-5):
-        """Set properties for final execution of the window"""
+        """Set properties for scheduled execution of the window"""
 
         assert(dv_used <= self.data_vol + dv_epsilon)
 
@@ -140,6 +140,19 @@ class ActivityWindow(EventWindow):
         self.executable_end = self.center + executable_duration/2
 
         self.executable_data_vol = dv_used
+
+    def set_executed_properties(self,start_time,end_time,dv_used,dv_epsilon=1e-5):
+        """Set properties for scheduled execution of the window"""
+        #  note that this code does not keep the activity centered about its original time, as we usually do. for that reason the executed attributes should never be used in scheduling code
+
+        assert(dv_used <= self.data_vol + dv_epsilon)
+
+        self.executed_start = start_time
+        self.executed_end = end_time
+
+        # todo: update center time?
+
+        self.executed_data_vol = dv_used
 
 
 def standard_time_accessor(wind,time_prop):

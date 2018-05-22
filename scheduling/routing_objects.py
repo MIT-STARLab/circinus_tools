@@ -26,7 +26,7 @@ def date_string(dt):
 
 class RoutingObjectID():
 
-    def __init__(self,creator_agent_ID,creator_agent_ID_indx):
+    def __init__(self,creator_agent_ID,creator_agent_ID_indx,rt_obj_type='default'):
         """constructor
         
         [description]
@@ -34,9 +34,12 @@ class RoutingObjectID():
         :type creator_agent_ID: str
         :param creator_agent_ID_indx: index of the route for the creator agent. This generally should increase by one every time a new route object is created
         :type creator_agent_ID_indx: int
+        :param rt_obj_type: an optional identifier for the type of routing object - not currently used in hash/equality computations
+        :type creator_agent_ID_indx: str
         """
         self.creator_agent_ID = creator_agent_ID
         self.creator_agent_ID_indx = creator_agent_ID_indx
+        self.rt_obj_type = rt_obj_type
 
     # See:
     # https://docs.python.org/3.4/reference/datamodel.html#object.__hash__
@@ -408,6 +411,9 @@ class DataRoute():
         self.route = fixed_route
         self.window_start_sats = fixed_window_start_sats
 
+    def add_dv(self,delta_dv):
+        """Add data to the data route, without any validation"""
+        self.data_vol += delta_dv
 
 class DataMultiRoute():
     """ aggregates multiple DataRoute objects

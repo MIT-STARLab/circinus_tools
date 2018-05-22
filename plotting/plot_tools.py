@@ -23,12 +23,12 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
     if winds and len(winds) > 0:
         for wind in winds:
 
-            act_start = (get_start_func(wind,t_opt)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
-            act_end = (get_end_func(wind,t_opt)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+            act_start = (get_start_func(wind)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+            act_end = (get_end_func(wind)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
 
             #  check if the activity is out of the time bounds for the plot or overlapping them
-            out_of_bounds = get_end_func(wind,t_opt) < sat_plot_params['plot_start_dt'] or get_start_func(wind,t_opt) > sat_plot_params['plot_end_dt']
-            overlapping_bounds = get_start_func(wind,t_opt) < sat_plot_params['plot_start_dt'] or get_end_func(wind,t_opt) > sat_plot_params['plot_end_dt']
+            out_of_bounds = get_end_func(wind) < sat_plot_params['plot_start_dt'] or get_start_func(wind) > sat_plot_params['plot_end_dt']
+            overlapping_bounds = get_start_func(wind) < sat_plot_params['plot_start_dt'] or get_end_func(wind) > sat_plot_params['plot_end_dt']
 
             if out_of_bounds:
                 continue
@@ -83,6 +83,15 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
 
     return viz_objects
 
+def get_start(wind):
+    return wind.start
+def get_start_original(wind):
+    return wind.original_start
+
+def get_end(wind):
+    return wind.end
+def get_end_original(wind):
+    return wind.original_end
 
 def plot_all_sats_acts(
     sats_ids_list,
@@ -127,6 +136,11 @@ def plot_all_sats_acts(
     dlnk_label_getter = plot_params.get('dlnk_label_getter_func',False)
     obs_label_getter = plot_params.get('obs_label_getter_func',False)
 
+    start_getter_reg = plot_params.get('start_getter_reg',get_start)
+    start_getter_choices = plot_params.get('start_getter_choices',get_start_original)
+    end_getter_reg = plot_params.get('end_getter_reg',get_end)
+    end_getter_choices = plot_params.get('end_getter_choices',get_end_original)
+
     xlnk_route_index_to_use = plot_params.get('xlnk_route_index_to_use',0)
     xlnk_color_rollover = plot_params.get('xlnk_color_rollover',1)
     xlnk_colors = plot_params.get('xlnk_colors',['#FF0000'])
@@ -166,22 +180,6 @@ def plot_all_sats_acts(
 
     # keep a running list of all the window IDs seen,  which we'll use for a sanity check
     all_wind_ids = []
-
-    def get_start(wind,time_opt):
-        if time_opt == 'original':
-            return wind.original_start
-        if time_opt == 'executable':
-            return wind.executable_start
-        else:
-            return wind.start
-
-    def get_end(wind,time_opt):
-        if time_opt == 'original':
-            return wind.original_end
-        if time_opt == 'executable':
-            return wind.executable_end
-        else:
-            return wind.end
 
     #  these hold the very last plot object of a given type added. Used for legend below
     d_w_obj = None
@@ -273,7 +271,7 @@ def plot_all_sats_acts(
                 "plot_act_time_option": plot_t_opt_choices,
             }
 
-            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
+            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds_choices[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter=None,color_getter=None)
             if len(xlnk_viz_objects) > 0:
                 x_w_obj = xlnk_viz_objects[-1]
 
@@ -299,7 +297,7 @@ def plot_all_sats_acts(
                 "plot_act_time_option": plot_t_opt_choices,
             }
 
-            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
+            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds_choices[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter=None,color_getter=None)
             if len(dlnk_viz_objects) > 0:
                 d_w_obj = dlnk_viz_objects[-1]
 
@@ -325,7 +323,7 @@ def plot_all_sats_acts(
                 "plot_act_time_option": plot_t_opt_choices,
             }
 
-            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds_choices[sat_indx],get_start,get_end,sat_plot_params,label_getter=None,color_getter=None)
+            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds_choices[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter=None,color_getter=None)
             if len(obs_viz_objects) > 0:
                 o_w_obj = obs_viz_objects[-1]
 
@@ -385,7 +383,7 @@ def plot_all_sats_acts(
 
             label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
 
-            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter)
+            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter,color_getter)
             if len(xlnk_viz_objects) > 0:
                 x_obj = xlnk_viz_objects[-1]
 
@@ -417,7 +415,7 @@ def plot_all_sats_acts(
 
             label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
 
-            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter=None)
+            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter,color_getter=None)
             if len(dlnk_viz_objects) > 0:
                 d_obj = dlnk_viz_objects[-1]
 
@@ -449,7 +447,7 @@ def plot_all_sats_acts(
 
             label_getter = obs_label_getter if obs_label_getter else label_getter
 
-            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds[sat_indx],get_start,get_end,sat_plot_params,label_getter,color_getter=None)
+            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter,color_getter=None)
             if len(obs_viz_objects) > 0:
                 o_obj = obs_viz_objects[-1]
 
