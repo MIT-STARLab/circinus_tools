@@ -17,8 +17,6 @@ def synthesize_executable_acts(rt_conts,filter_start_dt=None,filter_end_dt=None,
     #  then we need to synthesize these possibly disagreeing executable versions of each activity window into a single executable version; that is, we need to figure out the time utilization and DV utilization from every Sim route container and take the maximum over those. we take the sum because every route only accounts for how much of the activity window IT needs to use. if we take the sum over all routes, then we know how much of the window we actually need to use across all routes
     executable_acts_sythesized = []
     for act,exec_acts in exec_acts_by_wind.items():
-        # if len(exec_acts)>1:
-
         # exec_act is of type ExecutableActivity
         
         #  these are the amounts of data volume used for every route passing through this window ( well, every route within our filter)

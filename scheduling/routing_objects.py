@@ -74,7 +74,7 @@ class RoutingObjectID():
     def get_indx(self):
         return self.creator_agent_ID_indx
 
-class DataRoute():
+class DataRoute:
     '''
     Contains all the relevant information about the path taken by a single data packet traveling through the satellite network
     '''
@@ -415,7 +415,31 @@ class DataRoute():
         """Add data to the data route, without any validation"""
         self.data_vol += delta_dv
 
-class DataMultiRoute():
+    def remove_dv(self,delta_dv):
+        """Remove data from the data route, without any validation"""
+        if delta_dv > self.data_vol:
+            raise ValueError('Delta dv (%f) is greater than remaining dv (%f)'%(delta_dv,self.data_vol))
+
+        self.data_vol -= delta_dv
+
+
+    def contains_route(self, input_dr):
+        """ check if this data route contains, at least partly, the input data route"""
+
+        #  if the length of the other route is longer than this route, then it's impossible to contain the other route
+        if len(input_dr.route) > len(self.route):
+            return False
+
+        #  check every window in both of the routes, up to the end of the other route, for equality
+        contains = True
+        for windex in range(len(input_dr.route)):
+            contains &= input_dr.route[windex] == self.route[windex]
+
+        return contains
+
+
+
+class DataMultiRoute:
     """ aggregates multiple DataRoute objects
     
     Meant to represent the aggregation of multiple "simple" routes from a given observation to a given downlink. in general it's good to keep these data routes separate for the activity scheduling algorithm so that there is less potential for overlap with the Windows in other data routes. however, in the case where the data routes and activity scheduling need to have a higher minimum data volume than is achievable with the routes delivered by the route selection algorithm, then we need to aggregate multiple simple routes into a multi-route
@@ -458,6 +482,13 @@ class DataMultiRoute():
 
     def __eq__(self, other):
         return self.ID == other.ID
+
+    def __repr__(self):
+        # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
+        return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
+
+    def get_display_string(self):
+        return 'sched/poss_dv_by_dr: %s'%({'DR - '+dr.get_route_string():'%d/%d'%(dv,self.data_vol_by_dr[dr]) for dr,dv in self.scheduled_dv_by_dr.items()})
 
     @property
     def data_vol(self):
@@ -534,13 +565,6 @@ class DataMultiRoute():
 
     def get_latency( self,units='minutes',obs_option = 'end', dlnk_option = 'center'):
         return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
-
-    def get_display_string(self):
-        return 'sched/poss_dv_by_dr: %s'%({'DR - '+dr.get_route_string():'%d/%d'%(dv,self.data_vol_by_dr[dr]) for dr,dv in self.scheduled_dv_by_dr.items()})
-
-    def __repr__(self):
-        # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
-        return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
 
     def validate (self,time_option='start_end'):
 
@@ -634,41 +658,52 @@ class DataMultiRoute():
         dv_utilization = util_expect
         return dv_utilization
 
-class SimRouteContainer():
+    def contains_route(self, input_dr):
+        """ check if one of the routes within the state a multi-route  at least partly contains input data route"""
+        assert(type(input_dr) == DataRoute)
+
+        for dr in self.data_routes:
+            if dr.contains_route(input_dr):
+                return True
+
+
+
+class SimRouteContainer:
     """ This contains lower level data route objects, for use in the constellation simulation. It effectively allows the simulation to easily vary the amount of data volume, time scheduled for a data route, in order to flexibly replan in realtime. 
 
     The use of this container is an artifact of the choice to model data routes as a series of activity windows of fixed start/end times. If we wish to change any of those start/end times, that would be reflected as a change in the underlying window object, but not in the data route object itself, which is not great. So we'd have to create a new data route object - which is not great for rescheduling because its harder to track the data route object as it gets passed around the constellation. By wrapping the data route in a container that can change its state, we have both timing/dv flexibility and persistent object indexing"""
 
+    #  note that this container currently can only hold data multi-routes. 
     # note that i put the mechanisms in place here to have multiple DMRs in a single sim route container, but I don't use that capability currently. Mildly regretting doing so...
 
-    def __init__(self,ro_ID,data_routes,dv_utilization_by_dr_id,creation_dt,update_dt):
+    def __init__(self,ro_ID,dmrs,dv_utilization_by_dmr_id,creation_dt,update_dt):
 
         if not type(ro_ID) == RoutingObjectID:
             raise RuntimeWarning(' should not use anything but a RoutingObjectID as the ID for a DataMultiRoute')
             
         self.ID = ro_ID
-        drs_by_id = None
+        dmrs_by_id = None
 
         # handle case where we're only passed a single route (standard)
-        if type(data_routes) == DataMultiRoute:
-            dmr = data_routes
+        if type(dmrs) == DataMultiRoute:
+            dmr = dmrs
 
             # assert(isinstance(t_utilization_by_dr_id,float))
             # t_utilization_by_dr_id = {dmr.ID:t_utilization_by_dr_id}
-            assert(isinstance(dv_utilization_by_dr_id,float))
-            dv_utilization_by_dr_id = {dmr.ID:dv_utilization_by_dr_id}
+            assert(isinstance(dv_utilization_by_dmr_id,float))
+            dv_utilization_by_dmr_id = {dmr.ID:dv_utilization_by_dmr_id}
 
             # make it a list
-            drs_by_id = {dmr.ID:dmr}
+            dmrs_by_id = {dmr.ID:dmr}
         else:
             NotImplementedError
 
         # todo: relax this type constraint?
-        for dmr in drs_by_id.values():
+        for dmr in dmrs_by_id.values():
             if not type(dmr) == DataMultiRoute:
                 raise RuntimeWarning('Expected a DataMultiRoute, found %s'%(dmr))
 
-            # if not t_utilization_by_dr_id[dmr.ID] == dv_utilization_by_dr_id[dmr.ID]:
+            # if not t_utilization_by_dr_id[dmr.ID] == dv_utilization_by_dmr_id[dmr.ID]:
             #     raise RuntimeWarning('For current version of global planner, expect time and data volume utilization for a data route to be the same. DMR: %s'%(dmr))
 
         if ro_ID:
@@ -676,12 +711,12 @@ class SimRouteContainer():
         else:
             self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
-        self.drs_by_id = drs_by_id
+        self.dmrs_by_id = dmrs_by_id
 
         # this is the "time utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the duration for every window in the route should be multiplied to determine how long the window will actually be executed in the real, final schedule
         # self.t_utilization_by_dr_id = t_utilization_by_dr_id
         # this is the "data volume utilization" for the data route (DMR), which is a number from 0 to 1.0 by which the scheduled data volume for every window in the route should be multiplied to determine how much data volume will actually be throughput on this dr in the real, final schedule
-        self.dv_utilization_by_dr_id = dv_utilization_by_dr_id
+        self.dv_utilization_by_dmr_id = dv_utilization_by_dmr_id
         self.update_dt = update_dt
         self.creation_dt = creation_dt
 
@@ -691,12 +726,12 @@ class SimRouteContainer():
     @property
     def start(self):
         # get earliest start of all dmrs
-        return min(dmr.start for dmr in self.drs_by_id.values())
+        return min(dmr.start for dmr in self.dmrs_by_id.values())
 
     @property
     def end(self):
         # get latest end of all dmrs
-        return max(dmr.end for dmr in self.drs_by_id.values())
+        return max(dmr.end for dmr in self.dmrs_by_id.values())
 
     def __repr__(self):
         creation_dt_str = short_date_string(self.creation_dt) if self.creation_dt else 'None'
@@ -704,20 +739,24 @@ class SimRouteContainer():
         return '(SRC %s, ct %s, ut %s: %s)'%(self.ID,creation_dt_str,update_dt_str,self.get_display_string())
 
     def get_display_string(self):
-        return 'utilization_by_dmr: %s'%({'DMR %s - '%(dr_id) +self.drs_by_id[dr_id].get_display_string():util for dr_id,util in self.dv_utilization_by_dr_id.items()})
+        return 'utilization_by_dmr: %s'%({'DMR %s - '%(dr_id) +self.dmrs_by_id[dr_id].get_display_string():util for dr_id,util in self.dv_utilization_by_dmr_id.items()})
+
+    def get_dmr_utilization(self,dmr):
+        return self.dv_utilization_by_dmr_id[dmr]
 
     def has_sat_indx(self,sat_indx):
-        for dmr in self.drs_by_id.values():
+        """ return true if satellite with sat index is contained within the route in this route container"""
+        for dmr in self.dmrs_by_id.values():
             if dmr.has_sat_indx(sat_indx): return True
         return False
 
     def get_routes(self):
-        return list(self.drs_by_id.values())
+        return list(self.dmrs_by_id.values())
 
     def get_dv_epsilon(self):
         """ get DV epsilon that is representative for this route container"""
         #  for now, just grab the DV epsilon of the first route
-        return list(self.drs_by_id.values())[0].dv_epsilon
+        return list(self.dmrs_by_id.values())[0].dv_epsilon
 
     def set_times_safe(self,update_dt):
         """Set the update and creation times, if they have not already been set"""
@@ -733,17 +772,17 @@ class SimRouteContainer():
             raise NotImplementedError
 
         # sanity check that the same DMR is actually here
-        assert(dmr.ID in self.drs_by_id.keys())
+        assert(dmr.ID in self.dmrs_by_id.keys())
 
-        return (abs(self.dv_utilization_by_dr_id[dmr.ID] - dmr_dv_util) < self.dv_utilization_epsilon)
+        return (abs(self.dv_utilization_by_dmr_id[dmr.ID] - dmr_dv_util) < self.dv_utilization_epsilon)
 
 
     #  note: should not be using this function to update route containers ( the objects should be replaced)
     # def update_route(self,update_dr,dr_t_util,dr_dv_util,update_dt):
     #     #  note the implicit check here that the update DR is already present within this object
-    #     self.drs_by_id[update_dr.ID] = update_dr
+    #     self.dmrs_by_id[update_dr.ID] = update_dr
     #     self.t_utilization_by_dr_id[update_dr.ID] = dr_t_util
-    #     self.dv_utilization_by_dr_id[update_dr.ID] = dr_dv_util
+    #     self.dv_utilization_by_dmr_id[update_dr.ID] = dr_dv_util
     #     self.update_dt = update_dt
 
     def get_winds_executable(self,filter_start_dt=None,filter_end_dt=None,sat_indx=None):
@@ -753,7 +792,7 @@ class SimRouteContainer():
         #  note: using a list here instead of a set because in general the list should be small and okay for membership checking
         winds_executable = []
 
-        for dmr in self.drs_by_id.values():
+        for dmr in self.dmrs_by_id.values():
             winds = dmr.get_winds()
 
             for wind in winds:
@@ -766,27 +805,62 @@ class SimRouteContainer():
                 if filter_end_dt and wind.start > filter_end_dt:
                     continue
 
-                # if wind in winds_executable:
-                #     continue
-
-                # make a deepcopy so we don't risk information crossing the ether in the simulation...
-                # wind = deepcopy(wind)
-                # wind.set_executable_properties(self.t_utilization_by_dr_id[dmr.ID],self.dv_utilization_by_dr_id[dmr.ID])
-
                 #  create a new executable window entry, which specifies both the window and the amount of data volume used from it for this route
                 winds_executable.append(
                     ExecutableActivity(
                         wind=wind,
                         # t_utilization=self.t_utilization_by_dr_id[dmr.ID],
                         rt_conts=[self],
-                        dv_used=self.dv_utilization_by_dr_id[dmr.ID]*dmr.data_vol,
+                        dv_used=self.dv_utilization_by_dmr_id[dmr.ID]*dmr.data_vol,
                     )
                 )
 
         return winds_executable
 
+    def data_vol_for_wind(self,wind):
+        """ get the data volume used for a given activity window in this route container"""
 
-class ExecutableActivity():
+        wind_sum = sum(dmr.data_vol_for_wind(wind)*self.dv_utilization_by_dmr_id[dmr.ID] for dmr in self.dmrs_by_id.values())
+
+        if wind_sum == 0:
+            raise KeyError('Found zero data volume for window, which assumedly means it is not in the route. self: %s, wind: %s'%(self,wind))
+
+        return wind_sum
+
+    def contains_wind(self,wind):
+        """ check if this route container contains the given window"""
+
+        for dmr in self.dmrs_by_id.values():
+            if wind in dmr.get_winds():
+                return True
+
+    def find_matching_data_conts(self,data_conts):
+        """ find those data containers that match this same route container
+        
+        This method is essentially the linchpin in matching schedule intent ( represented by the sim route container) to execution ( represented by the data container). A data container is said to match a route container if its underlying data route matches at least one of the data routes underlying the Sim route container on a window by window basis. that is, the data container has the same observation and same cross-links as a data route within the Sim route container, up to and including the latest cross-link in the data container. This could also include the final downlink, but it's likely not useful to do this matching process after the downlink has occurred. Note that no data volume constraints are set on this match -  only the windows in the routes.
+        :param data_conts:  data containers to check for matches
+        :type data_conts: iterable
+        :returns:  matching data containers
+        :rtype: {list(SimDataContainer)}
+        """
+
+        matches = []
+
+        for dc in data_conts:
+            dc_dr = dc.data_route
+
+            #  check each data multi-route to see if it matches the route of the data container
+            for dmr in self.dmrs_by_id.values():
+                match_found= dmr.contains_route(dc_dr)
+
+                if match_found: 
+                    matches.append(dc)
+                    break
+
+        return matches
+
+
+class ExecutableActivity:
     """ this is an object that keeps track of an activity window, and the route containers (with their underlying data routes) whose executions are the reason why the activity window is being performed. this helps us keep track of why a window is being performed and where data goes to and arrives from"""
 
     def __init__(self,wind,rt_conts,dv_used):
@@ -817,7 +891,7 @@ class ExecutableActivity():
         #  just grab the dv epsilon from the first route container
         return self.rt_conts[0].get_dv_epsilon()
     
-class LinkInfo():
+class LinkInfo:
     """docstring fos  LinkInfo"""
     def __init__(self,data_routes=[],total_data_vol=0,used_data_vol=0):
         self.data_routes = data_routes
