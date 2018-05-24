@@ -2,6 +2,8 @@ from datetime import timedelta
 
 from circinus_tools  import  constants as const
 
+from circinus_tools import debug_tools
+
 class EventWindow():
 
     def __init__(self, start, end, window_ID):
@@ -147,6 +149,14 @@ class ActivityWindow(EventWindow):
 
         assert(dv_used <= self.data_vol + dv_epsilon)
 
+        #  to verify that we are setting these to the same values if they already exist
+        if hasattr(wind, 'executed_start'):
+            assert(self.executed_start == start_time) 
+        if hasattr(wind, 'executed_end'):
+            assert(self.executed_end == end_time) 
+        if hasattr(wind, 'executed_data_vol'):
+            assert(self.executed_data_vol == dv_used) 
+
         self.executed_start = start_time
         self.executed_end = end_time
 
@@ -161,8 +171,38 @@ def standard_time_accessor(wind,time_prop):
     elif time_prop == 'end':
         return wind.end
 
-def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
-    """ Step through a list of windows sorted by start time and figure out which window/window index we are currently in
+# def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
+#     """ Step through a list of windows sorted by start time and figure out which window/window index we are currently in
+    
+#     :param curr_time_dt: current time
+#     :type curr_time_dt: datetime.datetime
+#     :param start_windex: intial index in wind_list at which to start search
+#     :type start_windex: int
+#     :param wind_list: list of event windows
+#     :type wind_list: list(EventWindow)
+#     :returns: current window (if curr_time_dt falls within a window), current index in window list (index of first window that temporally follows or contains curr_time_dt)
+#     :rtype: {EventWindow,int}
+#     """
+
+#     if start_windex is None or len(wind_list) == 0:
+#         return None, None
+
+#     # move current act window possibility forward if we're past it, and we're not yet at end of schedule
+#     # -1 so we only advance if we're not yet at the end
+#     while start_windex < len(wind_list)-1 and curr_time_dt > time_accessor(wind_list[start_windex],'end'):
+#         start_windex += 1
+
+#     wind_possible = wind_list[start_windex]
+#     # we've found the first window for which curr_time_dt is not past its end. Check if we're actually in that wind
+#     if curr_time_dt >= time_accessor(wind_possible,'start') and curr_time_dt <= time_accessor(wind_possible,'end'):
+#         curr_wind = wind_possible
+#         return curr_wind,start_windex
+#     # if we're not in the wind, we've still found the relevant window index
+#     else:
+#         return None,start_windex
+
+def find_windows_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
+    """ Step through a list of windows sorted by start time and figure out which windows we are currently in.
     
     :param curr_time_dt: current time
     :type curr_time_dt: datetime.datetime
@@ -170,23 +210,39 @@ def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=s
     :type start_windex: int
     :param wind_list: list of event windows
     :type wind_list: list(EventWindow)
-    :returns: current window (if curr_time_dt falls within a window), current index in window list (index of first window that temporally follows or contains curr_time_dt)
-    :rtype: {EventWindow,int}
+    :returns: current windows (if curr_time_dt falls within a window), inclusive indices for slice within list containing these windows (index of first wind, index of last wind - NOT one past the last index!)
+    :rtype: {list(EventWindow),tuple(int,int)}
     """
 
     if start_windex is None or len(wind_list) == 0:
-        return None, None
+        return [], (None,None)
 
     # move current act window possibility forward if we're past it, and we're not yet at end of schedule
     # -1 so we only advance if we're not yet at the end
     while start_windex < len(wind_list)-1 and curr_time_dt > time_accessor(wind_list[start_windex],'end'):
         start_windex += 1
 
-    wind_possible = wind_list[start_windex]
-    # we've found the first window for which curr_time_dt is not past its end. Check if we're actually in that wind
-    if curr_time_dt >= time_accessor(wind_possible,'start') and curr_time_dt <= time_accessor(wind_possible,'end'):
-        curr_wind = wind_possible
-        return curr_wind,start_windex
-    # if we're not in the wind, we've still found the relevant window index
-    else:
-        return None,start_windex
+    first_windex_found = start_windex
+    last_windex_found = start_windex
+    winds_found = []
+
+
+    wind_possible = wind_list[last_windex_found]
+    # continue iterating through the list, as long time still is within a window
+    while curr_time_dt >= time_accessor(wind_possible,'start') and curr_time_dt <= time_accessor(wind_possible,'end'):
+
+        winds_found.append(wind_possible)
+        last_windex_found += 1
+
+        # have to check here and not in while statement because we want to add the window to winds_found if relevant
+        if last_windex_found == len(wind_list):
+            break
+
+        wind_possible = wind_list[last_windex_found]
+
+
+    #  if we have found any windows at all, the last index will be one past the index of the last window found
+    if len(winds_found) > 0:
+        last_windex_found = last_windex_found - 1
+
+    return winds_found,(first_windex_found,last_windex_found)

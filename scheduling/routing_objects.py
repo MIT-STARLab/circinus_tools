@@ -890,6 +890,24 @@ class ExecutableActivity:
     def dv_epsilon(self):
         #  just grab the dv epsilon from the first route container
         return self.rt_conts[0].get_dv_epsilon()
+
+    def plans_match(self,other):
+        """ check if two executable activities have the same plans ( their route containers are the same)"""
+
+        try:
+            #  search for all of our route containers in the other's route containers
+            for rt_cont in self.rt_conts:
+                other_rt_cont = other.rt_conts[other.rt_conts.index(rt_cont)]
+                # if the update times are different, than they are not matching
+                if not rt_cont.update_dt == other_rt_cont.update_dt:
+                    return False
+
+        #  if we cannot find the right container at all
+        except ValueError:
+            return False
+
+        return True
+
     
 class LinkInfo:
     """docstring fos  LinkInfo"""

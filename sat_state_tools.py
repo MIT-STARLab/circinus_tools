@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from circinus_tools.scheduling.base_window  import find_window_in_wind_list
+from circinus_tools.scheduling.base_window  import find_windows_in_wind_list
 
 def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable_acts,sat_ecl_winds,parsed_sat_power_params,delta_t_s):
     """ propagate energy storage state forward from start time to end time, given lists of scheduled/executable activities and eclipse windows"""
@@ -30,19 +30,24 @@ def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable
             delta_t_h = (end_time_dt-curr_time_dt).total_seconds()/3600.0
 
         #  find current activity, current eclipse ( if available)
-        curr_act,curr_act_windex = find_window_in_wind_list(curr_time_dt,curr_act_windex,executable_acts)
-        curr_ecl_wind,curr_ecl_windex = find_window_in_wind_list(curr_time_dt,curr_ecl_windex,sat_ecl_winds)
+        curr_acts,act_windices = find_windows_in_wind_list(curr_time_dt,curr_act_windex,executable_acts)
+        curr_ecl_winds,ecl_windices = find_windows_in_wind_list(curr_time_dt,curr_ecl_windex,sat_ecl_winds)
+        last_act_windex = act_windices[1]
+        last_ecl_windex = ecl_windices[1]
 
         act_edot = 0
-        if curr_act:
-            act_edot = parsed_sat_power_params['sat_edot_by_mode'][curr_act.get_code(sat_indx)]
+        for act in curr_acts:
+            act_edot += parsed_sat_power_params['sat_edot_by_mode'][act.get_code(sat_indx)]
 
         #  base-level satellite energy usage (not including additional activities)
         base_edot = parsed_sat_power_params['sat_edot_by_mode']['base']
 
+        if len(curr_ecl_winds) > 1:
+            raise RuntimeWarning('Found more than one valid eclipse window at current time')
+
         #  check if we're in eclipse in which case were not charging
         charging = True
-        if curr_ecl_wind:
+        if len(curr_ecl_winds) == 1:
             charging = False
 
         # add in charging energy contribution (if present)
