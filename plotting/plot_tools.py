@@ -503,7 +503,7 @@ def plot_energy_usage(
     plot_title = plot_params.get('plot_title','Activities Plot')
     plot_size_inches = plot_params.get('plot_size_inches',(12,12))
     show = plot_params.get('show',False)
-    fig_name = plot_params.get('fig_name','plots/xlnk_dlnk_plot.pdf')
+    fig_name = plot_params.get('fig_name','plots/energy_plot.pdf')
     time_units = plot_params.get('time_units','minutes')
     plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
 
@@ -596,6 +596,139 @@ def plot_energy_usage(
         legend_objects.append(e_max_plot)
     if e_min_plot: 
         legend_objects.append(e_min_plot)
+    if ecl_plot: 
+        legend_objects.append(ecl_plot)
+
+    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    plt.xlabel('Time (%s)'%(time_units))
+
+    # use the last axes to set the entire plot background color
+    axes.patch.set_facecolor('w')
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)
+
+
+def plot_data_usage(
+        sats_ids_list,
+        data_usage,
+        ecl_winds,
+        plot_params):
+
+    plot_labels = {
+        "d usage": "d usage",
+        "d max": "d max",
+        "d min": "d min",
+        "ecl": "ecl"
+    }
+
+    plot_start_dt = plot_params['plot_start_dt']
+    plot_end_dt = plot_params['plot_end_dt']
+    base_time_dt = plot_params['base_time_dt']
+    sat_id_order = plot_params['sat_id_order']
+    sats_dmin_Gb = plot_params['sats_dmin_Gb']
+    sats_dmax_Gb = plot_params['sats_dmax_Gb']
+    data_usage_plot_params = plot_params['data_usage_plot_params']
+
+    plot_title = plot_params.get('plot_title','Activities Plot')
+    plot_size_inches = plot_params.get('plot_size_inches',(12,12))
+    show = plot_params.get('show',False)
+    fig_name = plot_params.get('fig_name','plots/data_plot.pdf')
+    time_units = plot_params.get('time_units','minutes')
+    plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
+
+
+    if time_units == 'hours':
+        time_divisor = 3600
+    if time_units == 'minutes':
+        time_divisor = 60
+    
+    # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
+    start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
+    end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
+
+    num_sats = len(sats_ids_list)
+
+    #  make a new figure
+    plt.figure()
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+    # print fig.get_size_inches()
+
+    #  these hold the very last plot object of a given type added. Used for legend below
+    d_usage_plot = None
+    d_max_plot = None
+    d_min_plot = None
+    ecl_plot = None
+
+    # for each agent
+    first_sat = True
+    for  plot_indx, sat_id in enumerate (sats_ids_list):
+        #  get the index for this ID
+        sat_indx = sat_id_order.index(str(sat_id))
+
+        #  make a subplot for each
+        axes = plt.subplot( num_sats,1,plot_indx+1)
+        if plot_indx == floor(num_sats/2):
+            plt.ylabel('Satellite Index\n\n' + str(sat_indx))
+        else:
+            plt.ylabel('' + str(sat_indx))
+
+
+        # no y-axis labels
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left='off',
+            right='off',
+            labelleft='off'
+        )
+
+        # set axis length.
+        vert_min = data_usage_plot_params['plot_bound_d_min_Gb_delta']+sats_dmin_Gb[sat_indx]
+        vert_max = data_usage_plot_params['plot_bound_d_max_Gb_delta']+sats_dmax_Gb[sat_indx]
+        plt.axis((start_time, end_time, vert_min, vert_max))
+
+        current_axis = plt.gca()
+
+        # the first return value is a handle for our line, everything else can be ignored
+        if data_usage:
+            d_time = [d_t + start_time for d_t in data_usage['time_mins'][sat_indx]]
+            d_usage_plot,*dummy = plt.plot(d_time,data_usage['d_sats'][sat_indx], label =  plot_labels["d usage"])
+
+        if data_usage_plot_params['include_eclipse_windows']:
+            for ecl_wind in ecl_winds[sat_indx]:
+                ecl_wind_start = (ecl_wind.start- base_time_dt).total_seconds()/time_divisor
+                ecl_wind_end = (ecl_wind.end-base_time_dt).total_seconds()/time_divisor
+
+                height = vert_max-vert_min
+                ecl_plot = Rectangle((ecl_wind_start, vert_min), ecl_wind_end-ecl_wind_start, vert_min+height,alpha=0.3,fill=True,color='#202020',label= plot_labels["ecl"])
+
+                current_axis.add_patch(ecl_plot)
+
+        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_sats:
+            ax = plt.gca()
+            plt.setp(ax.get_xticklabels(), visible=False)
+
+        if first_sat:
+            plt.title(plot_title)
+
+        first_sat = False
+
+
+    legend_objects = []
+    if d_usage_plot: 
+        legend_objects.append(d_usage_plot)
+    if d_max_plot: 
+        legend_objects.append(d_max_plot)
+    if d_min_plot: 
+        legend_objects.append(d_min_plot)
     if ecl_plot: 
         legend_objects.append(ecl_plot)
 
