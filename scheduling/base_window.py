@@ -150,11 +150,11 @@ class ActivityWindow(EventWindow):
         assert(dv_used <= self.data_vol + dv_epsilon)
 
         #  to verify that we are setting these to the same values if they already exist
-        if hasattr(wind, 'executed_start'):
+        if hasattr(self, 'executed_start'):
             assert(self.executed_start == start_time) 
-        if hasattr(wind, 'executed_end'):
+        if hasattr(self, 'executed_end'):
             assert(self.executed_end == end_time) 
-        if hasattr(wind, 'executed_data_vol'):
+        if hasattr(self, 'executed_data_vol'):
             assert(self.executed_data_vol == dv_used) 
 
         self.executed_start = start_time
@@ -171,35 +171,6 @@ def standard_time_accessor(wind,time_prop):
     elif time_prop == 'end':
         return wind.end
 
-# def find_window_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
-#     """ Step through a list of windows sorted by start time and figure out which window/window index we are currently in
-    
-#     :param curr_time_dt: current time
-#     :type curr_time_dt: datetime.datetime
-#     :param start_windex: intial index in wind_list at which to start search
-#     :type start_windex: int
-#     :param wind_list: list of event windows
-#     :type wind_list: list(EventWindow)
-#     :returns: current window (if curr_time_dt falls within a window), current index in window list (index of first window that temporally follows or contains curr_time_dt)
-#     :rtype: {EventWindow,int}
-#     """
-
-#     if start_windex is None or len(wind_list) == 0:
-#         return None, None
-
-#     # move current act window possibility forward if we're past it, and we're not yet at end of schedule
-#     # -1 so we only advance if we're not yet at the end
-#     while start_windex < len(wind_list)-1 and curr_time_dt > time_accessor(wind_list[start_windex],'end'):
-#         start_windex += 1
-
-#     wind_possible = wind_list[start_windex]
-#     # we've found the first window for which curr_time_dt is not past its end. Check if we're actually in that wind
-#     if curr_time_dt >= time_accessor(wind_possible,'start') and curr_time_dt <= time_accessor(wind_possible,'end'):
-#         curr_wind = wind_possible
-#         return curr_wind,start_windex
-#     # if we're not in the wind, we've still found the relevant window index
-#     else:
-#         return None,start_windex
 
 def find_windows_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=standard_time_accessor):
     """ Step through a list of windows sorted by start time and figure out which windows we are currently in.
