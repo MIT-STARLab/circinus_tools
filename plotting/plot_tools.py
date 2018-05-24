@@ -699,7 +699,9 @@ def plot_data_usage(
         # the first return value is a handle for our line, everything else can be ignored
         if data_usage:
             d_time = [d_t + start_time for d_t in data_usage['time_mins'][sat_indx]]
-            d_usage_plot,*dummy = plt.plot(d_time,data_usage['d_sats'][sat_indx], label =  plot_labels["d usage"])
+            # adjust from Mb to Gb
+            sat_data_usage_Gb = [num/1000 for num in data_usage['d_sats'][sat_indx]]
+            d_usage_plot,*dummy = plt.plot(d_time,sat_data_usage_Gb, label =  plot_labels["d usage"])
 
         if data_usage_plot_params['include_eclipse_windows']:
             for ecl_wind in ecl_winds[sat_indx]:
