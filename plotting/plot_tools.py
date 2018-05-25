@@ -1,4 +1,5 @@
 from math import floor
+from functools import partial
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import savefig
@@ -92,14 +93,14 @@ def get_end(wind):
 def get_end_original(wind):
     return wind.original_end
 
-def plot_all_sats_acts(
-    sats_ids_list,
-    sats_obs_winds_choices,
-    sats_obs_winds,
-    sats_dlnk_winds_choices,
-    sats_dlnk_winds, 
-    sats_xlnk_winds_choices,
-    sats_xlnk_winds,
+def plot_all_agents_acts(
+    agents_ids_list,
+    agents_obs_winds_choices,
+    agents_obs_winds,
+    agents_dlnk_winds_choices,
+    agents_dlnk_winds, 
+    agents_xlnk_winds_choices,
+    agents_xlnk_winds,
     plot_params):
     '''
     Displays a 2D plot of assignments for each agent with respect to time
@@ -111,9 +112,10 @@ def plot_all_sats_acts(
     plot_start_dt = plot_params['plot_start_dt']
     plot_end_dt = plot_params['plot_end_dt']
     base_time_dt = plot_params['base_time_dt']
-    sat_id_order = plot_params['sat_id_order']
+    agent_id_order = plot_params['agent_id_order']
 
     plot_title = plot_params.get('plot_title','Activities Plot')
+    y_label = plot_params.get('y_label','Satellite Index')
     plot_size_inches = plot_params.get('plot_size_inches',(12,12))
     plot_include_labels = plot_params.get('plot_include_labels',False)
     show = plot_params.get('show',False)
@@ -128,9 +130,9 @@ def plot_all_sats_acts(
     plot_dlnks = plot_params.get('plot_dlnks',False)
     plot_obs = plot_params.get('plot_obs',False)
 
-    xlnk_label_getter = plot_params.get('xlnk_label_getter_func',False)
-    dlnk_label_getter = plot_params.get('dlnk_label_getter_func',False)
-    obs_label_getter = plot_params.get('obs_label_getter_func',False)
+    xlnk_label_getter = plot_params.get('xlnk_label_getter_func',None)
+    dlnk_label_getter = plot_params.get('dlnk_label_getter_func',None)
+    obs_label_getter = plot_params.get('obs_label_getter_func',None)
 
     start_getter_reg = plot_params.get('start_getter_reg',get_start)
     start_getter_choices = plot_params.get('start_getter_choices',get_start_original)
@@ -153,7 +155,7 @@ def plot_all_sats_acts(
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
     end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
 
-    num_sats = len(sats_ids_list)
+    num_agents = len(agents_ids_list)
 
     #  make a new figure
     plt.figure()
@@ -164,7 +166,7 @@ def plot_all_sats_acts(
     # print fig.get_size_inches()
 
     # have to sort before applying axis labels, otherwise x label shows up in a weird place
-    # sats.sort(key=lambda x: x.agent_ID)
+    # agents.sort(key=lambda x: x.agent_ID)
 
     # keep a running list of all the window IDs seen,  which we'll use for a sanity check
     all_wind_ids = []
@@ -177,13 +179,13 @@ def plot_all_sats_acts(
     o_w_obj = None
     o_obj = None
 
-    first_sat = True
+    first_agent = True
 
     # for each agent
     obs_count = 0
-    for  plot_indx, sat_id in enumerate (sats_ids_list):
+    for  plot_indx, agent_id in enumerate (agents_ids_list):
         #  get the index for this ID
-        sat_indx = sat_id_order.index(str(sat_id))
+        agent_indx = agent_id_order.index(str(agent_id))
 
         SMALL_SIZE = 8
         MEDIUM_SIZE = 10
@@ -197,11 +199,11 @@ def plot_all_sats_acts(
         plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
         plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-        axes = plt.subplot( num_sats,1,plot_indx+1)
-        if plot_indx == floor(num_sats/2):
-            plt.ylabel('Satellite Index\n\n' + str(sat_indx))
+        axes = plt.subplot( num_agents,1,plot_indx+1)
+        if plot_indx == floor(num_agents/2):
+            plt.ylabel('%s\n\n%d'%(y_label,agent_indx))
         else:
-            plt.ylabel('' + str(sat_indx))
+            plt.ylabel('' + str(agent_indx))
 
         # no y-axis labels
         plt.tick_params(
@@ -238,8 +240,8 @@ def plot_all_sats_acts(
 
         # plot the crosslink "choices" -  meant to represent the windows that could have been chosen
         #  plot cross-links first, so that they are the furthest back (lowest z value) on the plot, and observations and downlinks will appear on top ( because there are generally a lot more cross-links than observations and down links)
-        if plot_xlnks_choices and sats_xlnk_winds_choices is not None:
-            sat_plot_params = {
+        if plot_xlnks_choices and agents_xlnk_winds_choices is not None:
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#FFBCBC",
@@ -257,13 +259,13 @@ def plot_all_sats_acts(
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
             }
-            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds_choices[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter=None,color_getter=None)
+            xlnk_viz_objects = plot_window_schedule(current_axis,agents_xlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
             if len(xlnk_viz_objects) > 0:
                 x_w_obj = xlnk_viz_objects[-1]
 
         # plot the downlink "choices" -  meant to represent the windows that could have been chosen
-        if plot_dlnks_choices and sats_dlnk_winds_choices is not None:
-            sat_plot_params = {
+        if plot_dlnks_choices and agents_dlnk_winds_choices is not None:
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFBFFF",
@@ -282,13 +284,13 @@ def plot_all_sats_acts(
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
             }
 
-            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds_choices[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter=None,color_getter=None)
+            dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
             if len(dlnk_viz_objects) > 0:
                 d_w_obj = dlnk_viz_objects[-1]
 
         # plot the observation "choices" -  meant to represent the windows that could have been chosen
-        if plot_obs_choices and sats_obs_winds_choices is not None:
-            sat_plot_params = {
+        if plot_obs_choices and agents_obs_winds_choices is not None:
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFFFBF",
@@ -307,7 +309,7 @@ def plot_all_sats_acts(
                 "label_rotation_rollover": obs_label_rotation_rollover,
             }
 
-            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds_choices[sat_indx],start_getter_choices,end_getter_choices,sat_plot_params,label_getter=None,color_getter=None)
+            obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
             if len(obs_viz_objects) > 0:
                 o_w_obj = obs_viz_objects[-1]
 
@@ -319,20 +321,20 @@ def plot_all_sats_acts(
 
         #  plot the executed cross-links
         #  plot cross-links first, so that they are the furthest back (lowest z value) on the plot, and observations and downlinks will appear on top ( because there are generally a lot more cross-links than observations and down links)
-        if plot_xlnks and sats_xlnk_winds is not None:
-            def label_getter(xlnk):
+        if plot_xlnks and agents_xlnk_winds is not None:
+            def label_getter(xlnk,sat_indx=agent_indx):
                 dr_id = None
                 if route_ids_by_wind:
                     dr_indcs = route_ids_by_wind.get(xlnk,None)
                     if not dr_indcs is None:
                         dr_id = dr_indcs[xlnk_route_index_to_use]
 
-                other_sat_indx = xlnk.get_xlnk_partner(sat_indx)
+                other_agent_indx = xlnk.get_xlnk_partner(agent_indx)
                 if not dr_id is None:
-                    label_text = "%d,%d" %(dr_id.get_indx(),other_sat_indx)
+                    label_text = "%d,%d" %(dr_id.get_indx(),other_agent_indx)
                     label_text = "%s" %(dr_indcs)
                 else:         
-                    label_text = "%d" %(other_sat_indx)
+                    label_text = "%d" %(other_agent_indx)
 
                 return label_text
 
@@ -345,12 +347,12 @@ def plot_all_sats_acts(
                         xlnk_color_indx = dr_id.get_indx() %  xlnk_color_rollover
                 return xlnk_colors[xlnk_color_indx]
 
-            sat_plot_params = {
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": None,
                 "plot_hatch": True,
-                "include_labels": False,
+                "include_labels": plot_include_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
@@ -358,25 +360,27 @@ def plot_all_sats_acts(
                 "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.5,
+                "label_vert_bottom_base_offset": 0.4,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
             }
 
             label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
+            # supply the function with the agent index (freezes the current agent indx as an argument)
+            label_getter_agent = partial(label_getter, sat_indx=agent_indx)
 
-            xlnk_viz_objects = plot_window_schedule(current_axis,sats_xlnk_winds[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter,color_getter)
+            xlnk_viz_objects = plot_window_schedule(current_axis,agents_xlnk_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter_agent,color_getter)
             if len(xlnk_viz_objects) > 0:
                 x_obj = xlnk_viz_objects[-1]
 
         # plot the executed down links
-        if plot_dlnks and sats_dlnk_winds is not None:
+        if plot_dlnks and agents_dlnk_winds is not None:
             def label_getter(dlnk):
                 # todo: scheduled data vol here is deprecated
                 return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
 
-            sat_plot_params = {
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#0000FF",
@@ -389,7 +393,7 @@ def plot_all_sats_acts(
                 "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.5,
+                "label_vert_bottom_base_offset": 0.2,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
@@ -397,17 +401,17 @@ def plot_all_sats_acts(
 
             label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
 
-            dlnk_viz_objects = plot_window_schedule(current_axis,sats_dlnk_winds[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter,color_getter=None)
+            dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=None)
             if len(dlnk_viz_objects) > 0:
                 d_obj = dlnk_viz_objects[-1]
 
         # plot the observations that are actually executed
-        if plot_obs and sats_obs_winds is not None:
+        if plot_obs and agents_obs_winds is not None:
             def label_getter(obs):
                 # todo: scheduled data vol here is deprecated
                 return "obs %d, dv %d/%d"%(obs_count,obs.scheduled_data_vol,obs.data_vol)
 
-            sat_plot_params = {
+            agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#00FF00",
@@ -420,7 +424,7 @@ def plot_all_sats_acts(
                 "viz_object_rotator_hist": obs_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.1,
+                "label_vert_bottom_base_offset": 0.05,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
@@ -428,21 +432,21 @@ def plot_all_sats_acts(
 
             label_getter = obs_label_getter if obs_label_getter else label_getter
 
-            obs_viz_objects = plot_window_schedule(current_axis,sats_obs_winds[sat_indx],start_getter_reg,end_getter_reg,sat_plot_params,label_getter,color_getter=None)
+            obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=None)
             if len(obs_viz_objects) > 0:
                 o_obj = obs_viz_objects[-1]
 
             obs_count += 1
 
-        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
-        if not plot_indx+1 == num_sats:
+        #  if were at the last agentellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_agents:
             ax = plt.gca()
             plt.setp(ax.get_xticklabels(), visible=False)
 
-        if first_sat:
+        if first_agent:
             plt.title(plot_title)
 
-        first_sat = False
+        first_agent = False
 
 
     legend_objects = []
