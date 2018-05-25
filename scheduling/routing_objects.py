@@ -152,6 +152,11 @@ class DataRoute:
             if wind.has_sat_indx(sat_indx): return True
         return False
 
+    def has_gs_indx(self,gs_indx):
+        for wind in self.route:
+            if type(wind) == DlnkWindow and wind.has_gs_indx(gs_indx): return True
+        return False
+
     @staticmethod
     def calc_latency(obs,dlnk,units='minutes',obs_option = 'original_end', dlnk_option = 'center'):
         lat_start = getattr(obs,obs_option)
@@ -526,6 +531,11 @@ class DataMultiRoute:
     def has_sat_indx(self,sat_indx):
         for dr in self.data_routes:
             if dr.has_sat_indx(sat_indx): return True
+        return False
+
+    def has_gs_indx(self,gs_indx):
+        for dr in self.data_routes:
+            if dr.has_gs_indx(gs_indx): return True
         return False
 
     def scheduled_dv_for_wind(self,wind):

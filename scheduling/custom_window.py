@@ -159,6 +159,9 @@ class DlnkWindow(CommWindow):
     def has_sat_indx(self,sat_indx):
         return self.sat_indx == sat_indx
 
+    def has_gs_indx(self,gs_indx):
+        return self.gs_indx == gs_indx
+
     def print_self(self,  print_data_vol = True):
         print('DlnkWindow')
         print('sat_indx: ' + str(self.sat_indx))

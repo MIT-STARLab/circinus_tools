@@ -103,6 +103,10 @@ class ActivityWindow(EventWindow):
             self._ave_data_rate_cache =  self.data_vol / ( self.end - self.start).total_seconds ()
         return self._ave_data_rate_cache
 
+    def has_gs_indx(self,gs_indx):
+        """Check if this window has given ground station index. for general activity windows this is false"""
+        return False
+
     def update_duration_from_scheduled_dv( self,min_duration_s=10):
         """ update duration based on schedule data volume
         
