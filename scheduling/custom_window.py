@@ -12,18 +12,6 @@ from circinus_tools  import time_tools as tt
 from circinus_tools  import  constants as const
 from .base_window import EventWindow, ActivityWindow
 
-DATE_STRING_FORMAT = 'short'
-# DATE_STRING_FORMAT = 'iso'
-
-def short_date_string(dt):
-    return dt.strftime("%H:%M:%S")
-
-def date_string(dt):
-    if DATE_STRING_FORMAT == 'iso':
-        return dt.isoformat()
-    if DATE_STRING_FORMAT == 'short':
-        return  short_date_string(dt)
-
 class ObsWindow(ActivityWindow):
     def __init__(self, window_ID, sat_indx, target_IDs, sat_target_indx, is_urgent, start, end):
         '''
@@ -48,10 +36,10 @@ class ObsWindow(ActivityWindow):
         super(ObsWindow, self).__init__(start, end, window_ID)
 
     def __str__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
+        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def __repr__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),date_string(self.start),date_string(self.end))
+        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def get_code(self,sat_indx):
         # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
@@ -145,10 +133,10 @@ class DlnkWindow(CommWindow):
     #         super().__getattr__(attr)            
 
     def __str__(self):
-        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
+        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def __repr__(self):
-        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,date_string(self.start),date_string(self.end))
+        return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def get_code(self,sat_indx):
         # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
@@ -212,9 +200,9 @@ class XlnkWindow(CommWindow):
 
     def __repr__(self):
         if self.symmetric:
-            return  "(XlnkWindow id %d sym. sats %d<->%d dv %f %s,%s)" % (self.window_ID,self.sat_indx, self.xsat_indx,self.data_vol, date_string(self.start),date_string(self.end))
+            return  "(XlnkWindow id %d sym. sats %d<->%d dv %f %s,%s)" % (self.window_ID,self.sat_indx, self.xsat_indx,self.data_vol, tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
         else:
-            return  "(XlnkWindow id %d uni. sats %d->%d dv %f %s,%s)" % (self.window_ID,self.tx_sat, self.get_xlnk_partner(self.tx_sat),self.data_vol, date_string(self.start),date_string(self.end))
+            return  "(XlnkWindow id %d uni. sats %d->%d dv %f %s,%s)" % (self.window_ID,self.tx_sat, self.get_xlnk_partner(self.tx_sat),self.data_vol, tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     @property
     def rx_sat(self):
@@ -300,7 +288,7 @@ class EclipseWindow(EventWindow):
         super(EclipseWindow, self).__init__(start, end, window_ID)
 
     def __str__(self):
-        return  "(EclipseWindow id %d %s,%s)" % ( self.window_ID,date_string(self.start),date_string(self.end))
+        return  "(EclipseWindow id %d %s,%s)" % ( self.window_ID,tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def __repr__(self):
-        return  "(EclipseWindow id %d %s,%s)" % ( self.window_ID,date_string(self.start),date_string(self.end))
+        return  "(EclipseWindow id %d %s,%s)" % ( self.window_ID,tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))

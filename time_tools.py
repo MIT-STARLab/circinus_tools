@@ -37,3 +37,12 @@ def datetime2mjd(time):
     mjd = mjd_midnight+ time.hour/24.0 + time.minute/24.0/60 + time.second/24.0/60/60
 
     return mjd
+
+def short_date_string(dt):
+    return dt.strftime("%H:%M:%S")
+
+def date_string(dt,format_opt='iso'):
+    if format_opt == 'iso':
+        return dt.isoformat()
+    if format_opt == 'short':
+        return  short_date_string(dt)

@@ -5,24 +5,13 @@
 from copy import copy
 
 from circinus_tools  import  constants as const
+from circinus_tools  import  time_tools as tt
 from .custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 from collections import namedtuple
 
-DATE_STRING_FORMAT = 'short'
-# DATE_STRING_FORMAT = 'iso'
 
 SatStorageInterval = namedtuple('SatStorageInterval','sat_indx start end')
 
-def short_date_string(dt):
-    return dt.strftime("%H:%M:%S")
-
-def date_string(dt):
-    if DATE_STRING_FORMAT == 'iso':
-        return dt.isoformat()
-    if DATE_STRING_FORMAT == 'short':
-        return  short_date_string(dt)
-
-    # multi:  there are forks and convergences in the route; data can split out from one window to travel through multiple windows and converge back on another window.  temporal consistency must still be maintained though
 
 class RoutingObjectID():
 
@@ -114,6 +103,8 @@ class DataRoute:
         #  this maintains a list of the windows for which we've allowed an overlap at their start to exist in the route. this is used in the validation step
         self.allowed_overlaps_start_wind = []
 
+        self.output_date_str_format = 'short'
+
     def set_id(self,agent_ID,agent_ID_index):
         self.ID = RoutingObjectID(agent_ID,agent_ID_index)
 
@@ -190,19 +181,19 @@ class DataRoute:
         for wind in self.route:
 
             if type (wind)  == ObsWindow:
-                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  date_string(wind.start)
-                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  date_string(wind.end)
+                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  tt.date_string(wind.start,self.output_date_str_format)
+                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  tt.date_string(wind.end,self.output_date_str_format)
                 out_string  +=  "o %d s%d dv %.0f %s,%s" % (wind.window_ID,wind.sat_indx, wind.data_vol,start_str,end_str)
             elif type (wind)  == XlnkWindow:
-                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  date_string(wind.start)
-                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  date_string(wind.end)
+                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  tt.date_string(wind.start,self.output_date_str_format)
+                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  tt.date_string(wind.end,self.output_date_str_format)
                 sat_indx=self.window_start_sats[wind]
                 # xsat_indx=wind.xsat_indx  if self.window_start_sats[wind] == wind.sat_indx else wind.sat_indx
                 xsat_indx=wind.get_xlnk_partner(self.window_start_sats[wind])
                 out_string  +=  " -> x %d s%d,xs%d dv %.0f %s,%s" % (wind.window_ID,sat_indx, xsat_indx, wind.data_vol,start_str,end_str)
             elif type (wind)  == DlnkWindow:
-                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  date_string(wind.start)
-                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  date_string(wind.end)
+                start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  tt.date_string(wind.start,self.output_date_str_format)
+                end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  tt.date_string(wind.end,self.output_date_str_format)
                 sat_indx= wind.sat_indx
                 out_string  +=  " -> d %d s%d dv %.0f %s,%s" % (wind.window_ID,sat_indx, wind.data_vol,start_str,end_str)
         
@@ -451,6 +442,9 @@ class DataMultiRoute:
 
     note that it is still valid to multiply the entire data volume of this route by a single utilization number from 0 to 1 to represent how much data volume is used from this multi-route. When constructing the multi-route, we ensure that no data volume from any given activity window is spoken for by multiple DataRoute objects within the multi-route; i.e.,  It's perfectly allowable to schedule all of the data routes within from a throughput perspective. the utilization number effectively carries through to multiply the data volumes of the individual data route objects.
     """
+
+    # multi:  there are forks and convergences in the route; data can split out from one window to travel through multiple windows and converge back on another window.  temporal consistency must still be maintained though
+
 
     def __init__(self,ro_ID,data_routes,dv_epsilon=1e-5):
 

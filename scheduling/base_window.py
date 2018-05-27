@@ -21,6 +21,9 @@ class EventWindow():
 
         self._center_cache = None
 
+        self.output_date_str_format = 'short'
+
+
     def __hash__(self):
         return self.window_ID
 

@@ -228,7 +228,7 @@ def plot_all_agents_acts(
         xlnk_label_rotator_hist = {}
 
         obs_rotation_rollover = 2
-        obs_label_rotation_rollover = 3
+        obs_label_rotation_rollover = 2
         xlnk_rotation_rollover = 2
         xlnk_label_rotation_rollover = 3
         dlnk_rotation_rollover = 2
@@ -360,8 +360,8 @@ def plot_all_agents_acts(
                 "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.4,
-                "label_vert_spacing": 0.2,
+                "label_vert_bottom_base_offset": 0.605,
+                "label_vert_spacing": 0.1,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
             }
@@ -393,8 +393,8 @@ def plot_all_agents_acts(
                 "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
-                "label_vert_bottom_base_offset": 0.2,
-                "label_vert_spacing": 0.2,
+                "label_vert_bottom_base_offset": 0.305,
+                "label_vert_spacing": 0.1,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
             }
@@ -425,7 +425,7 @@ def plot_all_agents_acts(
                 "viz_object_rotation_rollover": 2,
                 "label_horz_offset": -0.3,
                 "label_vert_bottom_base_offset": 0.05,
-                "label_vert_spacing": 0.2,
+                "label_vert_spacing": 0.1,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
             }
