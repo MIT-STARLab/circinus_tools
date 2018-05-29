@@ -124,7 +124,7 @@ class SchedIOProcessor():
 
                 if len(curr_id_list) > 0:  # if it's not empty
                     # create a new observation based on the previous set of targets
-                    new_obs_window_list.append(ObsWindow(next_window_uid,sat_indx,curr_id_list,sat_target_indx=sat_target_indx,is_urgent=False,start=obs_start,end=obs_end))
+                    new_obs_window_list.append(ObsWindow(next_window_uid,sat_indx,curr_id_list,sat_target_indx=sat_target_indx,start=obs_start,end=obs_end))
                     next_window_uid += 1
                     sat_target_indx += 1
 
@@ -161,7 +161,7 @@ class SchedIOProcessor():
                     else:
                         raise NotImplementedError
 
-                    sat_obs_winds.append(ObsWindow(next_window_uid,sat_indx,[targ_indx],sat_target_indx=obs_indx,is_urgent=False,start= start,end= end))
+                    sat_obs_winds.append(ObsWindow(next_window_uid,sat_indx,[targ_indx],sat_target_indx=obs_indx,start= start,end= end))
                     next_window_uid+=1
 
             obs_winds.append(sat_obs_winds)

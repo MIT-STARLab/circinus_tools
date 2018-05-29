@@ -13,7 +13,7 @@ from circinus_tools  import  constants as const
 from .base_window import EventWindow, ActivityWindow
 
 class ObsWindow(ActivityWindow):
-    def __init__(self, window_ID, sat_indx, target_IDs, sat_target_indx, is_urgent, start, end):
+    def __init__(self, window_ID, sat_indx, target_IDs, sat_target_indx, start, end, wind_obj_type='default'):
         '''
         An observation window. Can represent a window during which an activity can happen, or the actual activity itself
 
@@ -21,7 +21,6 @@ class ObsWindow(ActivityWindow):
         :param int sat_indx: index of the satellite
         :param list target_IDs: the set of target IDs that this observation is looking at
         :param int sat_target_indx: the index of this observation in the list of sat-target observations from gp_input_obs.mat
-        :param bool is_urgent: set true if the obs is urgent, and it should be routed before all others
         :param datetime start: start time of the window
         :param datetime end: end time of the window
         '''
@@ -30,10 +29,9 @@ class ObsWindow(ActivityWindow):
         self.target_IDs = target_IDs
         self.sat_target_indx = sat_target_indx
         self.data_pkts = []
-        self.is_urgent = is_urgent
         self.unmodified_data_vol = const.UNASSIGNED
         self.collected_data_vol = 0
-        super(ObsWindow, self).__init__(start, end, window_ID)
+        super(ObsWindow, self).__init__(start, end, window_ID,wind_obj_type)
 
     def __str__(self):
         return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
@@ -260,20 +258,6 @@ class XlnkWindow(CommWindow):
             return False
         else:
             return True
-
-class UrgentWindow(ActivityWindow):
-    def __init__(self, target_ID, start, end):
-        '''
-        Window of time during which an observation target is urgent. Convenience class.
-
-        :param int target_ID: target ID of target to make urgent during this window
-        :param datetime start: start time of the window
-        :param datetime end: end time of the window
-        '''
-
-        self.target_ID = target_ID
-        super(UrgentWindow, self).__init__(start, end)
-
 
 class EclipseWindow(EventWindow):
     def __init__(self, window_ID, start, end):

@@ -6,29 +6,34 @@ from circinus_tools import debug_tools
 
 class EventWindow():
 
-    def __init__(self, start, end, window_ID):
+    def __init__(self, start, end, window_ID, wind_obj_type='default'):
         '''
         Creates an activity window
 
         :param datetime start: start time of the window
         :param datetime end: end time of the window
         :param int window_ID:  unique window ID used for hashing and comparing windows
+        :param wind_obj_type: an optional identifier for the type of window object - to allow multiple namespaces of window_IDs
         '''
 
         self.start = start
         self.end = end
         self.window_ID = window_ID
+        self.wind_obj_type = wind_obj_type
 
         self._center_cache = None
 
         self.output_date_str_format = 'short'
 
-
+    # See:
+    # https://docs.python.org/3.4/reference/datamodel.html#object.__hash__
+    # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
     def __hash__(self):
-        return self.window_ID
+        # xor the components together ( include window object type so that we can a multiple window ID name spaces)
+        return hash(self.window_ID) ^ hash(self.wind_obj_type)
 
     def __eq__(self, other):
-        return self.window_ID ==  other.window_ID
+        return hash(self) == hash(other)
 
     @property
     def center(self):
@@ -51,7 +56,7 @@ class ActivityWindow(EventWindow):
     note that the hash function for this class uses the window_ID attribute. This should be globally unique across all  activity window instances and subclass instances created in the simulation
     """
 
-    def __init__(self, start, end, window_ID):
+    def __init__(self, start, end, window_ID,wind_obj_type='default'):
         '''
         Creates an activity window
 
@@ -78,7 +83,7 @@ class ActivityWindow(EventWindow):
         #  keeps track of if the start and end times of this window have been updated, for use as a safeguard
         self.timing_updated = False
 
-        super().__init__(start, end, window_ID)
+        super().__init__(start, end, window_ID,wind_obj_type)
 
     def modify_time(self,new_dt,time_opt):
         if time_opt == 'start':

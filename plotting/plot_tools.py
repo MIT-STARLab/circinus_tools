@@ -47,9 +47,10 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
                 if overlapping_bounds:
                     hatch = '.'
 
-            color = sat_plot_params['plot_color']
             if color_getter:
                 color = color_getter(wind)
+            else:
+                color = sat_plot_params['plot_color']
 
             # plot the task duration
             viz_object = Rectangle((act_start, bottom_vert_loc), act_end-act_start, bottom_vert_loc+1,alpha=1,fill=fill,color=color,hatch=hatch)
@@ -117,7 +118,9 @@ def plot_all_agents_acts(
     plot_title = plot_params.get('plot_title','Activities Plot')
     y_label = plot_params.get('y_label','Satellite Index')
     plot_size_inches = plot_params.get('plot_size_inches',(12,12))
-    plot_include_labels = plot_params.get('plot_include_labels',False)
+    plot_include_obs_labels = plot_params.get('plot_include_obs_labels',False)
+    plot_include_xlnk_labels = plot_params.get('plot_include_xlnk_labels',False)
+    plot_include_dlnk_labels = plot_params.get('plot_include_dlnk_labels',False)
     show = plot_params.get('show',False)
     fig_name = plot_params.get('fig_name','plots/xlnk_dlnk_plot.pdf')
     time_units = plot_params.get('time_units','minutes')
@@ -133,6 +136,10 @@ def plot_all_agents_acts(
     xlnk_label_getter = plot_params.get('xlnk_label_getter_func',None)
     dlnk_label_getter = plot_params.get('dlnk_label_getter_func',None)
     obs_label_getter = plot_params.get('obs_label_getter_func',None)
+
+    xlnk_color_getter = plot_params.get('xlnk_color_getter_func',None)
+    dlnk_color_getter = plot_params.get('dlnk_color_getter_func',None)
+    obs_color_getter = plot_params.get('obs_color_getter_func',None)
 
     start_getter_reg = plot_params.get('start_getter_reg',get_start)
     start_getter_choices = plot_params.get('start_getter_choices',get_start_original)
@@ -352,7 +359,7 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 "plot_color": None,
                 "plot_hatch": True,
-                "include_labels": plot_include_labels,
+                "include_labels": plot_include_xlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
@@ -367,6 +374,7 @@ def plot_all_agents_acts(
             }
 
             label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
+            color_getter = xlnk_color_getter if xlnk_color_getter else color_getter
             # supply the function with the agent index (freezes the current agent indx as an argument)
             label_getter_agent = partial(label_getter, sat_indx=agent_indx)
 
@@ -380,12 +388,15 @@ def plot_all_agents_acts(
                 # todo: scheduled data vol here is deprecated
                 return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
 
+            def color_getter(dlnk):
+                return "#0000FF"
+
             agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
-                "plot_color": "#0000FF",
+                # "plot_color": "#0000FF",
                 "plot_hatch": True,
-                "include_labels": plot_include_labels,
+                "include_labels": plot_include_dlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
@@ -400,8 +411,9 @@ def plot_all_agents_acts(
             }
 
             label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
+            color_getter = dlnk_color_getter if dlnk_color_getter else color_getter
 
-            dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=None)
+            dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=color_getter)
             if len(dlnk_viz_objects) > 0:
                 d_obj = dlnk_viz_objects[-1]
 
@@ -411,12 +423,15 @@ def plot_all_agents_acts(
                 # todo: scheduled data vol here is deprecated
                 return "obs %d, dv %d/%d"%(obs_count,obs.scheduled_data_vol,obs.data_vol)
 
+            def color_getter(obs):
+                return "#00FF00"
+
             agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
-                "plot_color": "#00FF00",
+                # "plot_color": "#00FF00",
                 "plot_hatch": True,
-                "include_labels": plot_include_labels,
+                "include_labels": plot_include_obs_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
@@ -431,8 +446,9 @@ def plot_all_agents_acts(
             }
 
             label_getter = obs_label_getter if obs_label_getter else label_getter
+            color_getter = obs_color_getter if obs_color_getter else color_getter
 
-            obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=None)
+            obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=color_getter)
             if len(obs_viz_objects) > 0:
                 o_obj = obs_viz_objects[-1]
 
