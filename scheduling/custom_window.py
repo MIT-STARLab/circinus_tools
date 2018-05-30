@@ -29,7 +29,6 @@ class ObsWindow(ActivityWindow):
         self.target_IDs = target_IDs
         self.sat_target_indx = sat_target_indx
         self.data_pkts = []
-        self.unmodified_data_vol = const.UNASSIGNED
         self.collected_data_vol = 0
         super(ObsWindow, self).__init__(start, end, window_ID,wind_obj_type)
 
@@ -80,8 +79,6 @@ class ObsWindow(ActivityWindow):
 
     def calc_data_vol(self,pl_data_rate):
         self.data_vol = (self.end- self.start).total_seconds()*pl_data_rate
-        self.remaining_data_vol = self.data_vol
-        self.unmodified_data_vol = self.data_vol
 
     def has_sat_indx(self,sat_indx):
         return self.sat_indx == sat_indx

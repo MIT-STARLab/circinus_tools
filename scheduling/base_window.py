@@ -72,7 +72,6 @@ class ActivityWindow(EventWindow):
         #  scheduled data volume is the amount of data volume used for this window in the global planner.
         #  note that this value should NEVER be used in constellation sim code, directly or indirectly.  it is updated in the global planner, so if it is accessed on a satellite that could constitute "instantaneous" propagation of information from the global planner to the satellite
         self.scheduled_data_vol = const.UNASSIGNED
-        self.remaining_data_vol = const.UNASSIGNED
 
         # This holds a reference to the original window if this window was copied from another one.  used for restoring the original window from a copy
         self.original_wind_ref = None

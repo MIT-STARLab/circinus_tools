@@ -504,9 +504,6 @@ class SchedIOProcessor():
                 if start_time_sec < (latest_time_sec - self.tstep_sec/2):
                     raise Exception ('create_data_history: problem in data history construction, times wrong')
 
-                # if wind.data_vol > wind.unmodified_data_vol or wind.remaining_data_vol < 0:
-                #     raise Exception ('create_data_history: problem in data history construction, data vol wrong')
-
                 if type(wind) == ObsWindow:
                     dv_created = wind.collected_data_vol
                     new_sat_dv +=  dv_created
