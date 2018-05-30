@@ -503,15 +503,23 @@ class DataMultiRoute:
         else:
             return const.UNASSIGNED
 
-    @property
-    def start(self):
+    def get_start(self,time_opt='regular'):
         #  note the use of original time here. This is because activity windows are stored as shared objects across all routes in the sim, and original start will never change, so there's no use of "information leak"
-        return self.get_obs().original_start
+        if time_opt == 'regular':
+            return self.get_obs().start
+        elif time_opt == 'original':
+            return self.get_obs().original_start
+        else:
+            raise NotImplementedError
 
-    @property
-    def end(self):
+    def get_end(self,time_opt='regular'):
         #  note the use of original time here. This is because activity windows are stored as shared objects across all routes in the sim, and original start will never change, so there's no use of "information leak"
-        return self.get_dlnk().original_end
+        if time_opt == 'regular':
+            return self.get_dlnk().end
+        elif time_opt == 'original':
+            return self.get_dlnk().original_end
+        else:
+            raise NotImplementedError
 
     def data_vol_for_wind(self,wind):
         wind_sum = sum(dv for dr,dv in self.data_vol_by_dr.items() if wind in dr.get_winds())

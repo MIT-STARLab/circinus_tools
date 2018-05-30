@@ -45,6 +45,24 @@ class ObsWindow(ActivityWindow):
 
         return 'obs'
 
+    def is_tx(self,sat_indx):
+        # accept sat index as input to provide similar API as for other activity windows
+        # we only receive data during an obs
+
+        if not sat_indx == self.sat_indx:
+            raise RuntimeError('testing activity window with the wrong satellite index')
+        
+        return False
+
+    def is_rx(self,sat_indx):
+        # accept sat index as input to provide similar API as for other activity windows
+        # we only receive data during an obs
+
+        if not sat_indx == self.sat_indx:
+            raise RuntimeError('testing activity window with the wrong satellite index')
+        
+        return True
+
     def print_self(self):
         print('ObsWindow')
         print('sat_indx: ' + str(self.sat_indx))
@@ -141,6 +159,24 @@ class DlnkWindow(CommWindow):
         assert(sat_indx==self.sat_indx)
 
         return 'dlnk'
+
+    def is_tx(self,sat_indx):
+        # accept sat index as input to provide similar API as for other activity windows
+        # we only receive data during an obs
+
+        if not sat_indx == self.sat_indx:
+            raise RuntimeError('testing activity window with the wrong satellite index')
+
+        return True
+
+    def is_rx(self,sat_indx):
+        # accept sat index as input to provide similar API as for other activity windows
+        # we only receive data during an obs
+
+        if not sat_indx == self.sat_indx:
+            raise RuntimeError('testing activity window with the wrong satellite index')
+
+        return False
 
     def has_sat_indx(self,sat_indx):
         return self.sat_indx == sat_indx
@@ -243,6 +279,12 @@ class XlnkWindow(CommWindow):
         xsat_indx= self.xsat_indx  if sat_indx == self.sat_indx else self.sat_indx
         return xsat_indx
 
+    def is_tx(self,sat_indx):
+        # accept sat index as input to provide similar API as for other activity windows
+        # we only receive data during an obs
+
+        return not self.is_rx(sat_indx)
+
     def is_rx(self,sat_indx):
         """ check if satellite is receiving during this cross-link
         
@@ -252,6 +294,9 @@ class XlnkWindow(CommWindow):
         :returns:  true if it's receiving
         :rtype: {bool}
         """
+        if not sat_indx in [self.sat_indx,self.xsat_indx]:
+            raise RuntimeError('testing activity window with the wrong satellite index')
+
         if self.symmetric:
             return True
         elif sat_indx == self.tx_sat:
