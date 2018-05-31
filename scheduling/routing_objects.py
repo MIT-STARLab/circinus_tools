@@ -91,6 +91,7 @@ class DataRoute:
         self.data_vol = dv
 
         #  the amount of capacity on the path that actually ends up scheduled for usage
+        # BIG FAT NOTE: this value can go stale, and should not be relied upon anywhere in the constellation sim code as the amount of dv available for this route - rather, the vanilla data_vol of the route should be multiplied by utilization to figure out how much is usable. The LPs DO NOT update the scheduled dv number, which is why it can go stale
         self.scheduled_dv = const.UNASSIGNED
 
         # self.sort_windows()   
@@ -105,8 +106,29 @@ class DataRoute:
 
         self.output_date_str_format = 'short'
 
-    def set_id(self,agent_ID,agent_ID_index):
-        self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+    # @property
+    # def simple_data_routes(self):
+    #     #  this provides a consistent API with DataMultiRoute
+    #     return [self]
+    
+    def __repr__(self):
+        if not self.scheduled_dv:
+            return  '(dr %s: %s)'%(self.ID,self.get_route_string())
+        else:
+            if self.scheduled_dv == const.UNASSIGNED:
+                return  '(dr %s: %s; sched dv: %s/%.0f Mb)'%( self.ID,self.get_route_string(),'none', self.data_vol)
+            else:
+                return  '(dr %s: %s; sched dv: %.0f/%.0f Mb)'%( self.ID,self.get_route_string(),self.scheduled_dv, self.data_vol)
+
+    def __getitem__(self, key):
+        """ getter for internal route by index"""
+        return self.route[key]
+
+    def __hash__(self):
+        return hash(self.ID)
+
+    def __eq__(self, other):
+        return self.ID == other.ID
 
     def __copy__(self):
         newone = type(self)(None,None,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier,ro_ID=copy(self.ID))
@@ -118,12 +140,58 @@ class DataRoute:
         newone.scheduled_dv = self.scheduled_dv
         return newone
 
+    def set_id(self,agent_ID,agent_ID_index):
+        self.ID = RoutingObjectID(agent_ID,agent_ID_index)
+
     def append_wind_to_route( self,wind,window_start_sat_indx):
         self.route.append(wind)
         self.window_start_sats[wind] = window_start_sat_indx
 
     def get_winds(self):
         return (wind for wind in self.route)
+
+    def get_inflow_winds_rx_sat(self,sat_indx):
+        """ find all the windows in this route up to and including the window that delivers data to the satellite of interest"""
+
+        relevant_winds = []
+        found_rx_sat = False
+        # iterate through the windows in this route...
+        for wind in self.get_winds():
+            #  check if the window is an rx activity for the satellite of interest
+            wind_is_rx_for_sat = wind.has_sat_indx(sat_indx) and wind.is_rx(sat_indx)
+
+            relevant_winds.append(wind)
+
+            #  if we have found a window that receives for the satellite, mark that and stop the loop, because we have found up to and including the rx sat
+            if wind_is_rx_for_sat: 
+                found_rx_sat = True
+                break
+
+        if not found_rx_sat:
+            raise RuntimeWarning('Did not find rx sat indx %d in route %s'%(sat_indx,self))
+
+        return relevant_winds
+
+    def get_outflow_winds_tx_sat(self,sat_indx):
+        """ find all the windows in this route after (and including) the window that carries data from the satellite of interest to the end of the route"""
+
+        relevant_winds = []
+        found_tx_sat = False
+        # iterate through the windows in this route...
+        for wind in self.get_winds():
+            #  check if the window is an tx activity for the satellite of interest
+            wind_is_tx_for_sat = wind.has_sat_indx(sat_indx) and wind.is_tx(sat_indx)
+
+            #  if we have found the window that transmits from the satellite, mark that and add that window as well as all windows after that
+            if wind_is_tx_for_sat or found_tx_sat: 
+                relevant_winds.append(wind)
+                found_tx_sat = True
+
+        if not found_tx_sat:
+            raise RuntimeWarning('Did not find tx sat indx %d in route %s'%(sat_indx,self))
+
+        return relevant_winds
+
 
     def get_obs( self):
         return self.route[0]
@@ -199,19 +267,6 @@ class DataRoute:
         
         return out_string
 
-    def __repr__(self):
-        if not self.scheduled_dv:
-            return  '(dr %s: %s)'%(self.ID,self.get_route_string())
-        else:
-            if self.scheduled_dv == const.UNASSIGNED:
-                return  '(dr %s: %s; sched dv: %s/%.0f Mb)'%( self.ID,self.get_route_string(),'none', self.data_vol)
-            else:
-                return  '(dr %s: %s; sched dv: %.0f/%.0f Mb)'%( self.ID,self.get_route_string(),self.scheduled_dv, self.data_vol)
-
-    def __getitem__(self, key):
-        """ getter for internal route by index"""
-        return self.route[key]
-
     def restore_route_objects(self,obs_winds_dict,dlnk_winds_dict,xlnk_winds_dict):
         """grab the original route objects from the input dicts (using hash lookup)"""
 
@@ -224,13 +279,15 @@ class DataRoute:
             elif type(wind) == XlnkWindow:
                 self.route[windex] = xlnk_winds_dict[wind]
 
-    def validate (self,time_option='start_end'):
+    def validate (self,time_option='start_end',dv_epsilon=None):
         """ validates timing and ordering of route
         
         This function is used to validate the correctness of a data route within the global planner. note that it should not be used in the constellation simulation for data validation, because it relies on start and end times in the underlying activity windows,  which are not safe to use outside the global planner
         :raises: Exception, Exception, Exception
         """
 
+        if dv_epsilon is None:
+            dv_epsilon = self.dv_epsilon
 
         if len( self.route) == 0:
             return
@@ -239,7 +296,7 @@ class DataRoute:
         if not type (obs) is ObsWindow:
             raise Exception('First window on route was not an ObsWindow instance. Route string: %s'%( self.get_route_string()))
 
-        if not self.scheduled_dv <= self.data_vol + self.dv_epsilon:
+        if not self.scheduled_dv <= self.data_vol + dv_epsilon:
             string = 'routing_objects.py: scheduled data volume (%f) is more than available data volume (%f). Route string: %s'%( self.scheduled_dv, self.data_vol, self.get_route_string())
             raise RuntimeError(string)
 
@@ -272,7 +329,7 @@ class DataRoute:
                 raise RuntimeWarning( string)
 
             #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
-            if not self.data_vol <= wind.data_vol + self.dv_epsilon:
+            if not self.data_vol <= wind.data_vol + dv_epsilon:
                 string ='routing_objects.py: Found bad dv at window indx %d in route. Allowable dv: %f. Route string: %s'%( windex, obs.data_vol*self.obs_dv_multiplier,str(self))
                 raise RuntimeWarning( string)
 
@@ -292,6 +349,31 @@ class DataRoute:
             elif time_option=='center':
                 last_time = wind.center
 
+    @staticmethod
+    def determine_window_start_sats(wind_list):
+        """ trace through windows, figuring out the initial sat indx for each wind."""
+
+        #  sort the window list first, in case it has not been already
+        wind_list.sort(key=lambda w:w.start)
+
+        window_start_sats = {}
+
+        obs= wind_list[0]
+        dlnk= wind_list[-1]
+        #  a couple sanity checks that the start and end windows are correct
+        assert(type(obs) == ObsWindow)
+        assert(type(dlnk) == DlnkWindow)
+
+        #  trace from the first window to the last window, storing off the initial satellite index at each window
+        curr_sat_indx = obs.sat_indx
+        next_sat_indx = obs.sat_indx
+        for wind in wind_list:
+            window_start_sats[wind] = curr_sat_indx
+            if type (wind) is XlnkWindow:
+                next_sat_indx=wind.get_xlnk_partner(curr_sat_indx)
+            curr_sat_indx = next_sat_indx
+
+        return window_start_sats
 
     def get_split(self,other):
         """ return the last window in common with other data route
@@ -474,6 +556,8 @@ class DataMultiRoute:
         data_routes = [copy(data_route) for data_route in self.data_routes]
         # note: no need to copy ID
         newone = type(self)(self.ID,data_routes,self.dv_epsilon)
+        newone.scheduled_dv_by_dr = {dr:self.scheduled_dv_by_dr[dr] for dr in data_routes}
+        newone.has_scheduled_dv = self.has_scheduled_dv
         return newone
 
     def __hash__(self):
@@ -495,6 +579,9 @@ class DataMultiRoute:
 
     @property
     def scheduled_dv(self):
+        """the scheduled data volume for this route (<= the possible data_vol for the route)"""
+        # BIG FAT NOTE: this value can go stale, and should not be relied upon anywhere in the constellation sim code as the amount of dv available for this route - rather, the vanilla data_vol of the route should be multiplied by utilization to figure out how much is usable. The LPs DO NOT update the scheduled dv number, which is why it can go stale
+
         if self.has_scheduled_dv:
             if const.UNASSIGNED in self.scheduled_dv_by_dr.values():
                 raise RuntimeWarning('Saw unassigned scheduled data volume for dr in self: %s'%(self))
@@ -502,6 +589,10 @@ class DataMultiRoute:
             return sum(self.scheduled_dv_by_dr.values())
         else:
             return const.UNASSIGNED
+
+    @property
+    def simple_data_routes(self):
+        return [dr for dr in self.data_routes]
 
     def get_start(self,time_opt='regular'):
         #  note the use of original time here. This is because activity windows are stored as shared objects across all routes in the sim, and original start will never change, so there's no use of "information leak"
@@ -547,7 +638,21 @@ class DataMultiRoute:
         else:
             return const.UNASSIGNED    
 
+    def set_scheduled_dv(self,scheduled_dv):
+        """ set the scheduled data volume for this route"""
+
+        if scheduled_dv > self.data_vol:
+            raise RuntimeWarning('Attempted to set a larger scheduled data volume (%f) than the capacity of this route (%f) (route: %s)'%(scheduled_dv,self.data_vol,self))
+
+        sched_dv_frac = scheduled_dv/self.data_vol
+
+        #  key assumption of the DataMultiRoute object is that data volume is distributed evenly across Windows; we want to set schedule data volume safely by using a fractional utilization
+        self.set_scheduled_dv_frac(sched_dv_frac)
+
     def set_scheduled_dv_frac(self,fraction):
+        """ set the schedule data volume for this dmr based on the utilization fraction"""
+        # Note that "fraction" is really the same as utilization
+
         for dr in self.data_routes:
             self.scheduled_dv_by_dr[dr] = self.data_vol_by_dr[dr]*fraction
 
