@@ -22,6 +22,17 @@ class AgentScheduling(PyomoMILPScheduling):
         self.sat_activity_params = None
 
 
+        #  which attributes to use on the source (obs)/sink (dlnk) activity windows for latency calculation
+        #  this is meant to be overridden in the subclasses,  this is just an example
+        # self.latency_calculation_params = {
+        #     "dlnk": "center",
+        #     "obs": "center"
+        # }
+        self.latency_calculation_params = None
+
+        # this is the mimimum latency requirement for the highest latency score factor, 1.0. If multiple routes/dlnks for a single obs have latency less than this, they will both have sf 1.0
+        #  this is meant to be overridden in the subclasses
+        self.min_latency_for_sf_1_mins = None
 
         #####################
         #  activity constraint violation stuff
@@ -258,6 +269,43 @@ class AgentScheduling(PyomoMILPScheduling):
                                 inter_sat_act_constr_violation_acts_list.append((act1,act2))
 
         return binding_expr_overlap_by_act
+
+    def get_route_latency_score_factors(self,route_by_route_id,possible_route_ids_by_data_source_id):
+        """ get score factors between one and zero for each route possibility for a data source
+        
+        Routes can include DataMultiRoute's and UnifiedFlows. Data sources can include observation activity windows and (PartialFlow) inflows
+        :param route_by_route_id:  dictionary of routes with their IDs as keys ( for faster lookup)
+        :type route_by_route_id: dict
+        :param possible_route_ids_by_data_source_id:  dictionary of lists of routes that originate from a given data source, with data sources as keys
+        :type possible_route_ids_by_data_source_id: dict
+        :returns:  dictionary of latency score factors by route ID
+        :rtype: {[type]}
+        """
+
+        latency_sf_by_route_id = {}
+
+        for data_source_id,route_ids in possible_route_ids_by_data_source_id.items():
+            latencies = []
+            for route_id in route_ids:
+                route = route_by_route_id[route_id]
+
+                latencies.append(
+                    route.get_latency(
+                        'minutes',
+                        obs_option = self.latency_calculation_params['obs'], 
+                        dlnk_option = self.latency_calculation_params['dlnk']
+                    )
+                )
+
+            #  the shortest latency route (DMR/unified flow) for this data source (observation/inflow) has a score factor of 1.0, and the score factors for the other routes decrease as the inverse of increasing latency
+            min_lat = min(latencies)
+            min_lat = max(min_lat, self.min_latency_for_sf_1_mins)
+            for lat_indx, lat in enumerate(latencies):
+                route_id = route_ids[lat_indx]
+                lat = max(lat, self.min_latency_for_sf_1_mins)
+                latency_sf_by_route_id[route_id] = min_lat/lat
+ 
+        return latency_sf_by_route_id
 
 
 
