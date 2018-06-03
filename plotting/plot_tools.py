@@ -598,6 +598,13 @@ def plot_energy_usage(
 
                 current_axis.add_patch(ecl_plot)
 
+        if energy_usage_plot_params['show_min_max_bounds']:
+            e_min = sats_emin_Wh[sat_indx]
+            e_max = sats_emax_Wh[sat_indx]
+            e_max_plot,*dummy = plt.plot([start_time,end_time],[e_max,e_max], linestyle=':',label =  plot_labels["e max"])
+            e_min_plot,*dummy = plt.plot([start_time,end_time],[e_min,e_min], linestyle=':',label =  plot_labels["e min"])
+
+
         #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
         if not plot_indx+1 == num_sats:
             ax = plt.gca()
@@ -732,6 +739,13 @@ def plot_data_usage(
                 ecl_plot = Rectangle((ecl_wind_start, vert_min), ecl_wind_end-ecl_wind_start, vert_min+height,alpha=0.3,fill=True,color='#202020',label= plot_labels["ecl"])
 
                 current_axis.add_patch(ecl_plot)
+
+        if data_usage_plot_params['show_min_max_bounds']:
+            d_min = sats_dmin_Gb[sat_indx]
+            d_max = sats_dmax_Gb[sat_indx]
+            d_max_plot,*dummy = plt.plot([start_time,end_time],[d_max,d_max], linestyle=':',label =  plot_labels["d max"])
+            d_min_plot,*dummy = plt.plot([start_time,end_time],[d_min,d_min], linestyle=':',label =  plot_labels["d min"])
+
 
         #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
         if not plot_indx+1 == num_sats:
