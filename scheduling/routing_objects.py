@@ -706,7 +706,7 @@ class DataMultiRoute:
                 #  if we didn't yet encounter this window in any of the routes in self
                 avail_dv_by_wind.setdefault(wind,wind.data_vol)
 
-                avail_dv_by_wind[wind] -= dr.data_vol
+                avail_dv_by_wind[wind] -= self.data_vol_by_dr[dr]
 
         #  check that for all of the windows in all of the routes, no window is oversubscribed
         #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
