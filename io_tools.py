@@ -210,7 +210,10 @@ def parse_power_consumption_params(p_params):
         'battery_storage': 'Wh'
     }
 
-    return edot_by_mode,batt_storage,power_units
+    charge_eff = p_params['battery_storage_Wh']['charge_efficiency']
+    discharge_eff = p_params['battery_storage_Wh']['discharge_efficiency']
+
+    return edot_by_mode,batt_storage,power_units,charge_eff,discharge_eff
 
 def get_transition_time_req(act1,act2,sat_indx1,sat_indx2,sat_activity_params):
     # todo: this code needs update to deal with more context-dependent transition times
