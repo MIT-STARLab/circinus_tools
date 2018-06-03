@@ -69,6 +69,8 @@ class ActivityWindow(EventWindow):
         self.original_start = start
         self.original_end = end
         self.data_vol = const.UNASSIGNED
+        # this will be populated first time dv is calced
+        self.original_data_vol = None
         #  scheduled data volume is the amount of data volume used for this window in the global planner.
         #  note that this value should NEVER be used in constellation sim code, directly or indirectly.  it is updated in the global planner, so if it is accessed on a satellite that could constitute "instantaneous" propagation of information from the global planner to the satellite
         self.scheduled_data_vol = const.UNASSIGNED
@@ -107,7 +109,7 @@ class ActivityWindow(EventWindow):
     def ave_data_rate(self):
         if not self._ave_data_rate_cache:
             if self.timing_updated: raise RuntimeWarning('Trying to calculate average data rate after window timing has been updated')
-            self._ave_data_rate_cache =  self.data_vol / ( self.end - self.start).total_seconds ()
+            self._ave_data_rate_cache =  self.original_data_vol / ( self.original_end - self.original_start).total_seconds ()
         return self._ave_data_rate_cache
 
     def has_gs_indx(self,gs_indx):

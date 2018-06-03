@@ -28,8 +28,6 @@ class ObsWindow(ActivityWindow):
         self.sat_indx = sat_indx
         self.target_IDs = target_IDs
         self.sat_target_indx = sat_target_indx
-        self.data_pkts = []
-        self.collected_data_vol = 0
         super(ObsWindow, self).__init__(start, end, window_ID,wind_obj_type)
 
     def __str__(self):
@@ -79,6 +77,8 @@ class ObsWindow(ActivityWindow):
 
     def calc_data_vol(self,pl_data_rate):
         self.data_vol = (self.end- self.start).total_seconds()*pl_data_rate
+        if self.original_data_vol is None:
+            self.original_data_vol = self.data_vol
 
     def has_sat_indx(self,sat_indx):
         return self.sat_indx == sat_indx
@@ -113,6 +113,8 @@ class CommWindow(ActivityWindow):
         try:
             #  take the average of all the data rates we saw and multiply by the duration of the window to get data volume
             self.data_vol = np_mean(data_rates) * (self.end - self.start).total_seconds()
+            if self.original_data_vol is None:
+                self.original_data_vol = self.data_vol
         except RuntimeWarning as e:
             raise RuntimeWarning('Trouble determining average data rate. Probable no time points were found within start and end of window. Ensure that you are not overly decimating data rate calculations in data rates input file (window: %s, exception seen: %s)'%(self,str(e)))
 
@@ -133,7 +135,6 @@ class DlnkWindow(CommWindow):
         self.sat_indx = sat_indx
         self.gs_indx = gs_indx
         self.sat_gs_indx = sat_gs_indx
-        self.routed_data_vol = 0
 
         super(DlnkWindow, self).__init__(start, end, window_ID)
 
