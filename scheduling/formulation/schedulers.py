@@ -1,6 +1,9 @@
 from pyomo import environ  as pe
 from pyomo import opt  as po
 
+class NotSolvableError(RuntimeError):
+    pass
+
 class PyomoMILPScheduling:
     """ superclass for MILP schedulers implemented with pyomo, intended to unify mechanisms across CIRCINUS codebases"""
 
@@ -63,7 +66,7 @@ class PyomoMILPScheduling:
             print('this is feasible and optimal')
         elif results.solver.termination_condition == po.TerminationCondition.infeasible:
             print ('infeasible')
-            raise RuntimeError('Model is infeasible with current parameters')
+            raise NotSolvableError('Model is infeasible with current parameters')
         else:
             # something else is wrong
             print (results.solver)
