@@ -154,9 +154,9 @@ def plot_all_agents_acts(
     fontsize_dlnk = 7
 
     if time_units == 'hours':
-        time_divisor = 3600
+        time_divisor = 3600.0
     if time_units == 'minutes':
-        time_divisor = 60
+        time_divisor = 60.0
     
     # time_to_end = (plot_end_dt-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
@@ -529,9 +529,9 @@ def plot_energy_usage(
 
 
     if time_units == 'hours':
-        time_divisor = 3600
+        time_divisor = 3600.0
     if time_units == 'minutes':
-        time_divisor = 60
+        time_divisor = 60.0
     
     # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
@@ -669,9 +669,9 @@ def plot_data_usage(
 
 
     if time_units == 'hours':
-        time_divisor = 3600
+        time_divisor = 3600.0
     if time_units == 'minutes':
-        time_divisor = 60
+        time_divisor = 60.0
     
     # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
