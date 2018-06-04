@@ -35,7 +35,7 @@ class RoutingObjectID():
     # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
     def __hash__(self):
         # xor the components together
-        return hash(self.creator_agent_ID) ^ hash(self.creator_agent_ID_indx)
+        return hash(self.creator_agent_ID) ^ hash(self.creator_agent_ID_indx) ^ hash(self.rt_obj_type)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
