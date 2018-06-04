@@ -585,7 +585,9 @@ def plot_energy_usage(
 
         # the first return value is a handle for our line, everything else can be ignored
         if energy_usage:
-            e_time = [e_t + start_time for e_t in energy_usage['time_mins'][sat_indx]]
+            #  energy storage times in minutes
+            this_time_divisor = time_divisor/60.0
+            e_time = [(e_t+start_time)/this_time_divisor for e_t in energy_usage['time_mins'][sat_indx]]
             e_usage_plot,*dummy = plt.plot(e_time,energy_usage['e_sats'][sat_indx], label =  plot_labels["e usage"])
 
         if energy_usage_plot_params['include_eclipse_windows']:
@@ -725,7 +727,8 @@ def plot_data_usage(
 
         # the first return value is a handle for our line, everything else can be ignored
         if data_usage:
-            d_time = [d_t + start_time for d_t in data_usage['time_mins'][sat_indx]]
+            this_time_divisor = time_divisor/60.0
+            d_time = [(d_t+start_time)/this_time_divisor for d_t in data_usage['time_mins'][sat_indx]]
             # adjust from Mb to Gb
             sat_data_usage_Gb = [num/1000 for num in data_usage['d_sats'][sat_indx]]
             d_usage_plot,*dummy = plt.plot(d_time,sat_data_usage_Gb, label =  plot_labels["d usage"])
