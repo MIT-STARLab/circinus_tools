@@ -148,8 +148,9 @@ class SchedIOProcessor():
             sat_obs_winds = []
 
             for targ_indx, target_obs in enumerate(all_sat_obs):
+                targ_id = self.all_targ_IDs[targ_indx]
 
-                if self.all_targ_IDs[targ_indx] in self.targ_id_ignore_list:
+                if targ_id in self.targ_id_ignore_list:
                     continue
 
                 for obs_indx, obs in enumerate(target_obs):
@@ -161,7 +162,7 @@ class SchedIOProcessor():
                     else:
                         raise NotImplementedError
 
-                    sat_obs_winds.append(ObsWindow(next_window_uid,sat_indx,[targ_indx],sat_target_indx=obs_indx,start= start,end= end))
+                    sat_obs_winds.append(ObsWindow(next_window_uid,sat_indx,[targ_id],sat_target_indx=obs_indx,start= start,end= end))
                     next_window_uid+=1
 
             obs_winds.append(sat_obs_winds)
