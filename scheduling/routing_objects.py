@@ -612,7 +612,9 @@ class DataMultiRoute:
         else:
             raise NotImplementedError
 
+    # todo: I was a little carless before and used dmr.data_vol in places to get the data vol for windows, where i should have been using data_vol_for_wind(). I think I got most of these, but it would be good to do another sweep of the code later to check. Also it would be good in general if, when getting the data volume for a window from a data route, even just a plain DataRoute, data_vol_for_wind() were used. This points to the need to make DR and DMR actually have an inheritence relationship...
     def data_vol_for_wind(self,wind):
+        """Get the amount of data volume of wind used within this route"""
         wind_sum = sum(dv for dr,dv in self.data_vol_by_dr.items() if wind in dr.get_winds())
 
         if wind_sum == 0:
