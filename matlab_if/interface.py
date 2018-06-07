@@ -1,4 +1,5 @@
 import time
+import numbers
 
 # For matlab setup, see http://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html?refresh=true
 import matlab
@@ -355,7 +356,7 @@ class MatlabIF:
         """
         if type (mat)==  list:
             converted = [MatlabIF.convert_matlab_indexing_to_python(elem) for elem in mat]
-        elif  type (mat)== int:
+        elif  isinstance(mat,numbers.Real):
             converted = mat-1
         else:
             raise NotImplementedError    
