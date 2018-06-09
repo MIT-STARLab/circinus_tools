@@ -92,25 +92,25 @@ class MetricsCalcs():
     @staticmethod
     def get_routes_by_obs(routes):
         rts_by_obs = {}
-        for dr in routes:
-            obs = dr.get_obs()
+        for rt in routes:
+            obs = rt.get_obs()
             if not obs in rts_by_obs.keys ():
                 rts_by_obs[obs] = []
                 
-            rts_by_obs[obs].append (dr)
+            rts_by_obs[obs].append (rt)
 
         return rts_by_obs
 
-    def dr_possible_dv_getter(dr):
-        return dr.data_vol
-    def dr_scheduled_dv_getter(dr):
-        return dr.scheduled_dv
+    def rt_possible_dv_getter(rt):
+        return rt.data_vol
+    def rt_scheduled_dv_getter(rt):
+        return rt.scheduled_dv
 
     def assess_dv_by_obs(self, 
-            possible_routes_by_obs, 
+            possible_routes, 
             executed_routes, 
-            dr_poss_dv_getter = dr_possible_dv_getter, 
-            dr_exec_dv_getter= dr_scheduled_dv_getter, 
+            rt_poss_dv_getter = rt_possible_dv_getter, 
+            rt_exec_dv_getter= rt_scheduled_dv_getter, 
             verbose=False):
         """ assess data volume downlinked as grouped by observation
         
@@ -134,13 +134,14 @@ class MetricsCalcs():
         num_exec_obs = 0
         num_poss_obs_dv_not_zero = 0
 
+        possible_routes_by_obs = self.get_routes_by_obs(possible_routes)
         for obs in possible_routes_by_obs.keys():
-            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (dr_poss_dv_getter(rt) for rt in possible_routes_by_obs[obs]))
+            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in possible_routes_by_obs[obs]))
             if poss_dvs_by_obs[obs] > 0:
                 num_poss_obs_dv_not_zero += 1
 
         for obs in exec_rts_by_obs.keys():
-            exec_dvs_by_obs[obs] = sum (dr_exec_dv_getter(rt) for rt in exec_rts_by_obs[obs])
+            exec_dvs_by_obs[obs] = sum (rt_exec_dv_getter(rt) for rt in exec_rts_by_obs[obs])
             num_exec_obs +=1
 
 
