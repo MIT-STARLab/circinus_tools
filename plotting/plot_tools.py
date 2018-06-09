@@ -782,3 +782,44 @@ def plot_data_usage(
         plt.show()
     else:
         savefig(fig_name,format=plot_fig_extension)
+
+def plot_histogram(
+        data,
+        num_bins,
+        plot_type = 'histogram',
+        x_title='',
+        y_title='',
+        plot_title = 'Hist-o-gram, man!', 
+        plot_size_inches = (12,6),
+        show=False,
+        fig_name='plots/histogram.pdf',
+        plot_fig_extension = 'pdf'
+        ):
+
+    #  make a new figure
+    plt.figure()
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+
+    plt.title( plot_title)
+
+    if plot_type == 'histogram':
+        plt.hist(data, bins=num_bins)
+    elif plot_type == 'cdf':
+        plt.hist(data, bins=num_bins,normed=True,cumulative=True, histtype='step')
+    else:
+        raise NotImplementedError
+
+    plt.xlabel(x_title)
+    plt.ylabel(y_title)
+
+    # use the last axes to set the entire plot background color
+    current_axis = plt.gca()
+    current_axis.patch.set_facecolor('w')
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)

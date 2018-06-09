@@ -67,6 +67,7 @@ class MetricsCalcs():
         self.dlnk_same_time_slop_s = scenario_params['timestep_s'] - 1
 
     def assess_dv_all_routes(self, routes,  verbose  = False):
+        # DEPRECATED
         stats = {}
 
         dvs = []
@@ -125,6 +126,7 @@ class MetricsCalcs():
 
         stats = {}
 
+        possible_rts_by_obs = self.get_routes_by_obs(possible_routes)
         exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
 
         dlnk_dv_check = {}
@@ -134,9 +136,8 @@ class MetricsCalcs():
         num_exec_obs = 0
         num_poss_obs_dv_not_zero = 0
 
-        possible_routes_by_obs = self.get_routes_by_obs(possible_routes)
-        for obs in possible_routes_by_obs.keys():
-            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in possible_routes_by_obs[obs]))
+        for obs in possible_rts_by_obs.keys():
+            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in possible_rts_by_obs[obs]))
             if poss_dvs_by_obs[obs] > 0:
                 num_poss_obs_dv_not_zero += 1
 
@@ -206,6 +207,7 @@ class MetricsCalcs():
         return stats
 
     def assess_latency_all_routes(self, routes,verbose  = False):
+        # DEPRECATED
         """ assess latency for all routes
         
         pretty straightforward, just calculate latency for every route and then do statistics on that
@@ -249,28 +251,35 @@ class MetricsCalcs():
 
         return stats
 
-    def assess_latency_by_obs(self, rs_routes_by_obs,sched_routes, verbose=False):
+    def assess_latency_by_obs(self,
+        possible_routes, 
+        executed_routes, 
+        rt_poss_dv_getter = rt_possible_dv_getter, 
+        rt_exec_dv_getter= rt_scheduled_dv_getter, 
+        verbose=False):
         """ assess downlink latency as grouped by observation
         
         less straightforward than latency by route. First we group by observation,  then we find out how long it took to downlink the first minimum desired amount of data for each observation. based on how long this took we determin the latency of downlink for the observation.
-        :param sched_routes: [description]
-        :type sched_routes: [type]
+        :param executed_routes: [description]
+        :type executed_routes: [type]
         :param verbose: [description], defaults to False
         :type verbose: bool, optional
         :returns: [description]
         :rtype: {[type]}
         """
-        sched_rts_by_obs = self.get_routes_by_obs (sched_routes)
-        sched_obs = sched_rts_by_obs.keys()
+
+        poss_rts_by_obs = self.get_routes_by_obs (possible_routes)
+        exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
+        exec_obs = exec_rts_by_obs.keys()
 
         stats = {}
 
         #  for selected routes
-        initial_lat_by_obs_rs =  {}
-        for obs, rts in rs_routes_by_obs.items ():
+        poss_initial_lat_by_obs_exec =  {}
+        for obs, rts in poss_rts_by_obs.items ():
 
             # want to make this a fair comparison. Only consider latency in rs for those obs that show up in AS
-            if not obs in sched_obs:
+            if not obs in exec_obs:
                 continue
 
             # start, center, end...whichever we're using for the latency calculation
@@ -282,13 +291,13 @@ class MetricsCalcs():
             #  figure out the latency for the initial minimum DV downlink
             #  have to accumulate data volume because route selection minimum data volume might be less than that for activity scheduling
             cum_dv = 0
-            for dr in rts:
-                cum_dv += dr.data_vol
+            for rt in rts:
+                cum_dv += rt_poss_dv_getter(rt)
                 
                 #  if we have reached our minimum required data volume amount to deem the observation downlinked for the purposes of latency calculation...
                 if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop :
 
-                    initial_lat_by_obs_rs[obs] = dr.get_latency(
+                    poss_initial_lat_by_obs_exec[obs] = rt.get_latency(
                         'minutes',
                         obs_option = self.latency_calculation_params['obs'], 
                         dlnk_option = self.latency_calculation_params['dlnk']
@@ -297,29 +306,25 @@ class MetricsCalcs():
                     #  break so that we don't continue considering the rest of the data volume
                     break
 
-        #  for scheduled routes
-        initial_lat_by_obs =  {}
-        final_lat_by_obs =  {}
-        for obs, rts in sched_rts_by_obs.items ():
+        #  for executed routes
+        exec_initial_lat_by_obs_exec =  {}
+        exec_final_lat_by_obs_exec =  {}
+        for obs, rts in exec_rts_by_obs.items ():
             # start, center, end...whichever we're using for the latency calculation
             time_option = self.latency_calculation_params['dlnk']
 
             #  want to sort these by earliest time so that we favor earlier downlinks
             rts.sort (key=lambda rt: getattr(rt.get_dlnk(),time_option))
 
-            #  figure out the latency for the first route that got downlinked.
-            # sanity check that its scheduled data volume meets the minimum requirement
-            # assert(rts[0].scheduled_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop)
-
             #  figure out the latency for the initial minimum DV downlink
             #  have to accumulate data volume because route selection minimum data volume might be less than that for activity scheduling
             cum_dv = 0
-            for dr in rts:
-                cum_dv += dr.data_vol
+            for rt in rts:
+                cum_dv += rt_exec_dv_getter(rt)
                 
                 #  if we have reached our minimum required data volume amount to deem the observation downlinked for the purposes of latency calculation...
                 if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop :
-                    initial_lat_by_obs[obs] = rts[0].get_latency(
+                    exec_initial_lat_by_obs_exec[obs] = rts[0].get_latency(
                         'minutes',
                         obs_option = self.latency_calculation_params['obs'], 
                         dlnk_option = self.latency_calculation_params['dlnk']
@@ -329,66 +334,66 @@ class MetricsCalcs():
                     break
 
             # figure out the latency for downlink of all observation data that we chose to downlink
-            final_lat_by_obs[obs] = rts[-1].get_latency(
+            exec_final_lat_by_obs_exec[obs] = rts[-1].get_latency(
                 'minutes',
                 obs_option = self.latency_calculation_params['obs'], 
                 dlnk_option = self.latency_calculation_params['dlnk']
             )
 
-        i_lats_rs = [lat for lat in initial_lat_by_obs_rs. values ()]
-        i_lats_sched = [lat for lat in initial_lat_by_obs. values ()]
-        f_lats_sched = [lat for lat in final_lat_by_obs. values ()]
+        i_lats_poss = [lat for lat in poss_initial_lat_by_obs_exec. values ()]
+        i_lats_exec = [lat for lat in exec_initial_lat_by_obs_exec. values ()]
+        f_lats_exec = [lat for lat in exec_final_lat_by_obs_exec. values ()]
         
-        i_valid_rs = len(i_lats_rs) > 0
-        i_valid_sched = len(i_lats_sched) > 0
-        f_valid_sched = len(f_lats_sched) > 0
+        i_valid_poss = len(i_lats_poss) > 0
+        i_valid_exec = len(i_lats_exec) > 0
+        f_valid_exec = len(f_lats_exec) > 0
 
         # debug_tools.debug_breakpt()
 
-        #  note that if center times are not used  with both the observation and downlink for calculating latency, then the route selection and scheduled the numbers might differ. this is because the scheduled numbers reflect the updated start and end time for the Windows
-        stats['ave_obs_initial_lat_rs'] = np.mean(i_lats_rs) if i_valid_rs else None
-        stats['std_obs_initial_lat_rs'] = np.std(i_lats_rs) if i_valid_rs else None
-        stats['min_obs_initial_lat_rs'] = np.min(i_lats_rs) if i_valid_rs else None
-        stats['max_obs_initial_lat_rs'] = np.max(i_lats_rs) if i_valid_rs else None
-        stats['ave_obs_initial_lat_sched'] = np.mean(i_lats_sched) if i_valid_sched else None
-        stats['std_obs_initial_lat_sched'] = np.std(i_lats_sched) if i_valid_sched else None
-        stats['min_obs_initial_lat_sched'] = np.min(i_lats_sched) if i_valid_sched else None
-        stats['max_obs_initial_lat_sched'] = np.max(i_lats_sched) if i_valid_sched else None
-        stats['ave_obs_final_lat_sched'] = np.mean(f_lats_sched) if f_valid_sched else None
-        stats['min_obs_final_lat_sched'] = np.min(f_lats_sched) if f_valid_sched else None
-        stats['max_obs_final_lat_sched'] = np.max(f_lats_sched) if f_valid_sched else None
+        #  note that if center times are not used  with both the observation and downlink for calculating latency, then the route selection and executed the numbers might differ. this is because the executed numbers reflect the updated start and end time for the Windows
+        stats['ave_obs_initial_lat_poss'] = np.mean(i_lats_poss) if i_valid_poss else None
+        stats['std_obs_initial_lat_poss'] = np.std(i_lats_poss) if i_valid_poss else None
+        stats['min_obs_initial_lat_poss'] = np.min(i_lats_poss) if i_valid_poss else None
+        stats['max_obs_initial_lat_poss'] = np.max(i_lats_poss) if i_valid_poss else None
+        stats['ave_obs_initial_lat_exec'] = np.mean(i_lats_exec) if i_valid_exec else None
+        stats['std_obs_initial_lat_exec'] = np.std(i_lats_exec) if i_valid_exec else None
+        stats['min_obs_initial_lat_exec'] = np.min(i_lats_exec) if i_valid_exec else None
+        stats['max_obs_initial_lat_exec'] = np.max(i_lats_exec) if i_valid_exec else None
+        stats['ave_obs_final_lat_exec'] = np.mean(f_lats_exec) if f_valid_exec else None
+        stats['min_obs_final_lat_exec'] = np.min(f_lats_exec) if f_valid_exec else None
+        stats['max_obs_final_lat_exec'] = np.max(f_lats_exec) if f_valid_exec else None
 
-        stats['initial_lat_by_obs_rs'] = initial_lat_by_obs_rs
-        stats['initial_lat_by_obs'] = initial_lat_by_obs
-        stats['final_lat_by_obs'] = final_lat_by_obs
+        stats['poss_initial_lat_by_obs_exec'] = poss_initial_lat_by_obs_exec
+        stats['exec_initial_lat_by_obs_exec'] = exec_initial_lat_by_obs_exec
+        stats['exec_final_lat_by_obs_exec'] = exec_final_lat_by_obs_exec
 
         if verbose:
             print('------------------------------')
-            print('latencies by observation (only considering scheduled obs windows)')
+            print('latencies by observation (only considering "executed" obs windows)')
 
-            if not (i_valid_rs or i_valid_sched):
+            if not (i_valid_poss or i_valid_exec):
                 print('no routes found, no valid statistics to display')
                 return stats
 
-            if not i_valid_rs:
+            if not i_valid_poss:
                 print('no RS routes found')
-            if not i_valid_sched:
+            if not i_valid_exec:
                 print('no scheduled routes found')
 
-            if i_valid_rs:
-                print("%s: \t\t %f"%('ave_obs_initial_lat_rs',stats['ave_obs_initial_lat_rs']))
-                print("%s: \t\t %f"%('std_obs_initial_lat_rs',stats['std_obs_initial_lat_rs']))
-                print("%s: %f"%('min_obs_initial_lat_rs',stats['min_obs_initial_lat_rs']))
-                print("%s: %f"%('max_obs_initial_lat_rs',stats['max_obs_initial_lat_rs']))
+            if i_valid_poss:
+                print("%s: \t\t %f"%('ave_obs_initial_lat_poss',stats['ave_obs_initial_lat_poss']))
+                print("%s: \t\t %f"%('std_obs_initial_lat_poss',stats['std_obs_initial_lat_poss']))
+                print("%s: %f"%('min_obs_initial_lat_poss',stats['min_obs_initial_lat_poss']))
+                print("%s: %f"%('max_obs_initial_lat_poss',stats['max_obs_initial_lat_poss']))
 
-            if i_valid_sched:
-                print("%s: \t\t %f"%('ave_obs_initial_lat_sched',stats['ave_obs_initial_lat_sched']))
-                print("%s: \t\t %f"%('std_obs_initial_lat_sched',stats['std_obs_initial_lat_sched']))
-                print("%s: %f"%('min_obs_initial_lat_sched',stats['min_obs_initial_lat_sched']))
-                print("%s: %f"%('max_obs_initial_lat_sched',stats['max_obs_initial_lat_sched']))
-                print("%s: %f"%('ave_obs_final_lat_sched',stats['ave_obs_final_lat_sched']))
-                print("%s: %f"%('min_obs_final_lat_sched',stats['min_obs_final_lat_sched']))
-                print("%s: %f"%('max_obs_final_lat_sched',stats['max_obs_final_lat_sched']))
+            if i_valid_exec:
+                print("%s: \t\t %f"%('ave_obs_initial_lat_exec',stats['ave_obs_initial_lat_exec']))
+                print("%s: \t\t %f"%('std_obs_initial_lat_exec',stats['std_obs_initial_lat_exec']))
+                print("%s: %f"%('min_obs_initial_lat_exec',stats['min_obs_initial_lat_exec']))
+                print("%s: %f"%('max_obs_initial_lat_exec',stats['max_obs_initial_lat_exec']))
+                print("%s: %f"%('ave_obs_final_lat_exec',stats['ave_obs_final_lat_exec']))
+                print("%s: %f"%('min_obs_final_lat_exec',stats['min_obs_final_lat_exec']))
+                print("%s: %f"%('max_obs_final_lat_exec',stats['max_obs_final_lat_exec']))
 
         return stats
 
