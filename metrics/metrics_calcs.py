@@ -107,14 +107,14 @@ class MetricsCalcs():
         return dr.scheduled_dv
 
     def assess_dv_by_obs(self, 
-            rs_routes_by_obs, 
-            sched_routes, 
+            possible_routes_by_obs, 
+            executed_routes, 
             dr_poss_dv_getter = dr_possible_dv_getter, 
-            dr_sched_dv_getter= dr_scheduled_dv_getter, 
+            dr_exec_dv_getter= dr_scheduled_dv_getter, 
             verbose=False):
-        """ assess data volume down linked as grouped by observation
+        """ assess data volume downlinked as grouped by observation
         
-        pretty straightforward, we figure out all the data routes for each observation, and calculate statistics on data volumes for each observation
+        pretty straightforward, we figure out all the data routes for each observation, and calculate statistics on data volumes for each observation. We do this for both "possible" routes (e.g. all routes from route selection) and "executed" routes (e.g. scheduled routes in GP, data container routes in const sim)
         :param routes: [description]
         :type routes: [type]
         :param verbose: [description], defaults to False
@@ -125,79 +125,79 @@ class MetricsCalcs():
 
         stats = {}
 
-        sched_rts_by_obs = self.get_routes_by_obs (sched_routes)
+        exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
 
         dlnk_dv_check = {}
 
-        rs_collectible_dvs_by_obs =  {}
-        sched_dvs_by_obs =  {}
-        num_sched_obs = 0
-        num_rs_obs_dv_not_zero = 0
+        poss_dvs_by_obs =  {}
+        exec_dvs_by_obs =  {}
+        num_exec_obs = 0
+        num_poss_obs_dv_not_zero = 0
 
-        for obs in rs_routes_by_obs.keys():
-            rs_collectible_dvs_by_obs[obs] = min(obs.data_vol,sum (dr_poss_dv_getter(rt) for rt in rs_routes_by_obs[obs]))
-            if rs_collectible_dvs_by_obs[obs] > 0:
-                num_rs_obs_dv_not_zero += 1
+        for obs in possible_routes_by_obs.keys():
+            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (dr_poss_dv_getter(rt) for rt in possible_routes_by_obs[obs]))
+            if poss_dvs_by_obs[obs] > 0:
+                num_poss_obs_dv_not_zero += 1
 
-        for obs in sched_rts_by_obs.keys():
-            sched_dvs_by_obs[obs] = sum (dr_sched_dv_getter(rt) for rt in sched_rts_by_obs[obs])
-            num_sched_obs +=1
+        for obs in exec_rts_by_obs.keys():
+            exec_dvs_by_obs[obs] = sum (dr_exec_dv_getter(rt) for rt in exec_rts_by_obs[obs])
+            num_exec_obs +=1
 
 
-        rs_dvs = [dv for dv in rs_collectible_dvs_by_obs. values ()]
-        sched_dvs = [dv for dv in sched_dvs_by_obs. values ()]
+        poss_dvs = [dv for dv in poss_dvs_by_obs. values ()]
+        exec_dvs = [dv for dv in exec_dvs_by_obs. values ()]
         
-        valid_rs = len(rs_dvs) > 0
-        valid_sched = len(sched_dvs) > 0
+        valid_poss = len(poss_dvs) > 0
+        valid_exec = len(exec_dvs) > 0
 
-        stats['num_obs_rs'] = len(rs_dvs)
-        stats['num_obs_rs_pos_dv'] = num_rs_obs_dv_not_zero
-        stats['num_obs_sched'] = num_sched_obs
-        stats['total_collectible_dv'] = sum(rs_dvs) if valid_rs else 0
-        stats['total_sched_dv'] = sum(sched_dvs) if valid_sched else 0
-        stats['ave_obs_dv_rs'] = np.mean(rs_dvs) if valid_rs else 0
-        stats['ave_obs_dv_sched'] = np.mean(sched_dvs) if valid_sched else 0
-        stats['std_obs_dv_rs'] = np.std(rs_dvs) if valid_rs else 0
-        stats['std_obs_dv_sched'] = np.std(sched_dvs) if valid_sched else 0
-        stats['min_obs_dv_rs'] = np.min(rs_dvs) if valid_rs else 0
-        stats['min_obs_dv_sched'] = np.min(sched_dvs) if valid_sched else 0
-        stats['max_obs_dv_rs'] = np.max(rs_dvs) if valid_rs else 0
-        stats['max_obs_dv_sched'] = np.max(sched_dvs) if valid_sched else 0
+        stats['num_obs_poss'] = len(poss_dvs)
+        stats['num_obs_poss_nonzero_dv'] = num_poss_obs_dv_not_zero
+        stats['num_obs_exec'] = num_exec_obs
+        stats['total_poss_dv'] = sum(poss_dvs) if valid_poss else 0
+        stats['total_exec_dv'] = sum(exec_dvs) if valid_exec else 0
+        stats['ave_obs_dv_poss'] = np.mean(poss_dvs) if valid_poss else 0
+        stats['ave_obs_dv_exec'] = np.mean(exec_dvs) if valid_exec else 0
+        stats['std_obs_dv_poss'] = np.std(poss_dvs) if valid_poss else 0
+        stats['std_obs_dv_exec'] = np.std(exec_dvs) if valid_exec else 0
+        stats['min_obs_dv_poss'] = np.min(poss_dvs) if valid_poss else 0
+        stats['min_obs_dv_exec'] = np.min(exec_dvs) if valid_exec else 0
+        stats['max_obs_dv_poss'] = np.max(poss_dvs) if valid_poss else 0
+        stats['max_obs_dv_exec'] = np.max(exec_dvs) if valid_exec else 0
 
-        stats['rs_collectible_dvs_by_obs'] = rs_collectible_dvs_by_obs
+        stats['poss_dvs_by_obs'] = poss_dvs_by_obs
 
         if verbose:
             print('------------------------------')
             print('data volume by observation')
 
-            if not (valid_rs or valid_sched):
+            if not (valid_poss or valid_exec):
                 print('no routes found, no valid statistics to display')
                 return stats
 
-            if not valid_rs:
+            if not valid_poss:
                 print('no RS routes found')
-            if not valid_sched:
+            if not valid_exec:
                 print('no scheduled routes found')
 
-            if valid_rs:
-                print("%s: %f"%('num_obs_rs',stats['num_obs_rs']))
-                print("%s: \t\t\t %f"%('num_obs_rs_pos_dv',stats['num_obs_rs_pos_dv']))
-            if valid_sched:
-                print("%s: \t\t\t\t %f"%('num_obs_sched',stats['num_obs_sched']))
-            if valid_rs:
-                print("%s: \t\t %f"%('total_collectible_dv_rs',stats['total_collectible_dv']))
-            if valid_sched:
-                print("%s: \t\t\t %f"%('total_sched_dv',stats['total_sched_dv']))
-            if valid_rs:
-                print("%s: %f"%('ave_obs_dv_rs',stats['ave_obs_dv_rs']))
-                print("%s: %f"%('std_obs_dv_rs',stats['std_obs_dv_rs']))
-                print("%s: %f"%('min_obs_dv_rs',stats['min_obs_dv_rs']))
-                print("%s: %f"%('max_obs_dv_rs',stats['max_obs_dv_rs']))
-            if valid_sched:
-                print("%s: %f"%('ave_obs_dv_sched',stats['ave_obs_dv_sched']))
-                print("%s: %f"%('std_obs_dv_sched',stats['std_obs_dv_sched']))
-                print("%s: %f"%('min_obs_dv_sched',stats['min_obs_dv_sched']))
-                print("%s: %f"%('max_obs_dv_sched',stats['max_obs_dv_sched']))
+            if valid_poss:
+                print("%s: %f"%('num_obs_poss',stats['num_obs_poss']))
+                print("%s: \t\t\t %f"%('num_obs_poss_nonzero_dv',stats['num_obs_poss_nonzero_dv']))
+            if valid_exec:
+                print("%s: \t\t\t\t %f"%('num_obs_exec',stats['num_obs_exec']))
+            if valid_poss:
+                print("%s: \t\t %f"%('total_poss_dv',stats['total_poss_dv']))
+            if valid_exec:
+                print("%s: \t\t\t %f"%('total_exec_dv',stats['total_exec_dv']))
+            if valid_poss:
+                print("%s: %f"%('ave_obs_dv_poss',stats['ave_obs_dv_poss']))
+                print("%s: %f"%('std_obs_dv_poss',stats['std_obs_dv_poss']))
+                print("%s: %f"%('min_obs_dv_poss',stats['min_obs_dv_poss']))
+                print("%s: %f"%('max_obs_dv_poss',stats['max_obs_dv_poss']))
+            if valid_exec:
+                print("%s: %f"%('ave_obs_dv_exec',stats['ave_obs_dv_exec']))
+                print("%s: %f"%('std_obs_dv_exec',stats['std_obs_dv_exec']))
+                print("%s: %f"%('min_obs_dv_exec',stats['min_obs_dv_exec']))
+                print("%s: %f"%('max_obs_dv_exec',stats['max_obs_dv_exec']))
 
             # for obs, dv in dvs_by_obs.items ():
             #     print("%s: %f"%(obs,dv))
