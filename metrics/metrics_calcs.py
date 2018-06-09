@@ -126,7 +126,8 @@ class MetricsCalcs():
 
         stats = {}
 
-        possible_rts_by_obs = self.get_routes_by_obs(possible_routes)
+        # possible routes by observation
+        poss_rts_by_obs = self.get_routes_by_obs(possible_routes)
         exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
 
         dlnk_dv_check = {}
@@ -136,8 +137,8 @@ class MetricsCalcs():
         num_exec_obs = 0
         num_poss_obs_dv_not_zero = 0
 
-        for obs in possible_rts_by_obs.keys():
-            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in possible_rts_by_obs[obs]))
+        for obs in poss_rts_by_obs.keys():
+            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in poss_rts_by_obs[obs]))
             if poss_dvs_by_obs[obs] > 0:
                 num_poss_obs_dv_not_zero += 1
 
@@ -169,7 +170,6 @@ class MetricsCalcs():
         stats['poss_dvs_by_obs'] = poss_dvs_by_obs
 
         if verbose:
-            print('------------------------------')
             print('data volume by observation')
 
             if not (valid_poss or valid_exec):
@@ -183,13 +183,13 @@ class MetricsCalcs():
 
             if valid_poss:
                 print("%s: %f"%('num_obs_poss',stats['num_obs_poss']))
-                print("%s: \t\t\t %f"%('num_obs_poss_nonzero_dv',stats['num_obs_poss_nonzero_dv']))
+                print("%s: \t\t %f"%('num_obs_poss_nonzero_dv',stats['num_obs_poss_nonzero_dv']))
             if valid_exec:
                 print("%s: \t\t\t\t %f"%('num_obs_exec',stats['num_obs_exec']))
             if valid_poss:
-                print("%s: \t\t %f"%('total_poss_dv',stats['total_poss_dv']))
+                print("%s: \t\t\t\t %f"%('total_poss_dv',stats['total_poss_dv']))
             if valid_exec:
-                print("%s: \t\t\t %f"%('total_exec_dv',stats['total_exec_dv']))
+                print("%s: \t\t\t\t %f"%('total_exec_dv',stats['total_exec_dv']))
             if valid_poss:
                 print("%s: %f"%('ave_obs_dv_poss',stats['ave_obs_dv_poss']))
                 print("%s: %f"%('std_obs_dv_poss',stats['std_obs_dv_poss']))
@@ -237,7 +237,6 @@ class MetricsCalcs():
         stats['max_lat_mins'] = np.max(latencies) if valid else None
 
         if verbose and valid:
-            print('------------------------------')
             print('latency for routes')
 
             if not valid:
@@ -268,6 +267,7 @@ class MetricsCalcs():
         :rtype: {[type]}
         """
 
+        # possible routes by observation
         poss_rts_by_obs = self.get_routes_by_obs (possible_routes)
         exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
         exec_obs = exec_rts_by_obs.keys()
@@ -275,7 +275,7 @@ class MetricsCalcs():
         stats = {}
 
         #  for selected routes
-        poss_initial_lat_by_obs_exec =  {}
+        possible_initial_lat_by_obs_exec =  {}
         for obs, rts in poss_rts_by_obs.items ():
 
             # want to make this a fair comparison. Only consider latency in rs for those obs that show up in AS
@@ -297,7 +297,7 @@ class MetricsCalcs():
                 #  if we have reached our minimum required data volume amount to deem the observation downlinked for the purposes of latency calculation...
                 if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop :
 
-                    poss_initial_lat_by_obs_exec[obs] = rt.get_latency(
+                    possible_initial_lat_by_obs_exec[obs] = rt.get_latency(
                         'minutes',
                         obs_option = self.latency_calculation_params['obs'], 
                         dlnk_option = self.latency_calculation_params['dlnk']
@@ -307,8 +307,8 @@ class MetricsCalcs():
                     break
 
         #  for executed routes
-        exec_initial_lat_by_obs_exec =  {}
-        exec_final_lat_by_obs_exec =  {}
+        executed_initial_lat_by_obs_exec =  {}
+        executed_final_lat_by_obs_exec =  {}
         for obs, rts in exec_rts_by_obs.items ():
             # start, center, end...whichever we're using for the latency calculation
             time_option = self.latency_calculation_params['dlnk']
@@ -324,7 +324,7 @@ class MetricsCalcs():
                 
                 #  if we have reached our minimum required data volume amount to deem the observation downlinked for the purposes of latency calculation...
                 if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop :
-                    exec_initial_lat_by_obs_exec[obs] = rts[0].get_latency(
+                    executed_initial_lat_by_obs_exec[obs] = rts[0].get_latency(
                         'minutes',
                         obs_option = self.latency_calculation_params['obs'], 
                         dlnk_option = self.latency_calculation_params['dlnk']
@@ -334,15 +334,15 @@ class MetricsCalcs():
                     break
 
             # figure out the latency for downlink of all observation data that we chose to downlink
-            exec_final_lat_by_obs_exec[obs] = rts[-1].get_latency(
+            executed_final_lat_by_obs_exec[obs] = rts[-1].get_latency(
                 'minutes',
                 obs_option = self.latency_calculation_params['obs'], 
                 dlnk_option = self.latency_calculation_params['dlnk']
             )
 
-        i_lats_poss = [lat for lat in poss_initial_lat_by_obs_exec. values ()]
-        i_lats_exec = [lat for lat in exec_initial_lat_by_obs_exec. values ()]
-        f_lats_exec = [lat for lat in exec_final_lat_by_obs_exec. values ()]
+        i_lats_poss = [lat for lat in possible_initial_lat_by_obs_exec. values ()]
+        i_lats_exec = [lat for lat in executed_initial_lat_by_obs_exec. values ()]
+        f_lats_exec = [lat for lat in executed_final_lat_by_obs_exec. values ()]
         
         i_valid_poss = len(i_lats_poss) > 0
         i_valid_exec = len(i_lats_exec) > 0
@@ -363,12 +363,11 @@ class MetricsCalcs():
         stats['min_obs_final_lat_exec'] = np.min(f_lats_exec) if f_valid_exec else None
         stats['max_obs_final_lat_exec'] = np.max(f_lats_exec) if f_valid_exec else None
 
-        stats['poss_initial_lat_by_obs_exec'] = poss_initial_lat_by_obs_exec
-        stats['exec_initial_lat_by_obs_exec'] = exec_initial_lat_by_obs_exec
-        stats['exec_final_lat_by_obs_exec'] = exec_final_lat_by_obs_exec
+        stats['possible_initial_lat_by_obs_exec'] = possible_initial_lat_by_obs_exec
+        stats['executed_initial_lat_by_obs_exec'] = executed_initial_lat_by_obs_exec
+        stats['executed_final_lat_by_obs_exec'] = executed_final_lat_by_obs_exec
 
         if verbose:
-            print('------------------------------')
             print('latencies by observation (only considering "executed" obs windows)')
 
             if not (i_valid_poss or i_valid_exec):
@@ -610,12 +609,12 @@ class MetricsCalcs():
         # add on end time - important for getting proper AoI over whole scenario (first point (start_calc_window) was already added on matrix)
         d_c_mat_filt.append([end_calc_window,end_calc_window])
 
-        avaoi = self.calc_av_aoi( d_c_mat_filt, start_calc_window, end_calc_window,input_type="datetime",output_units=aoi_units)
-        aoi_curve = self.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_plot_t_units,y_units=aoi_units)
+        avaoi = MetricsCalcs.calc_av_aoi( d_c_mat_filt, start_calc_window, end_calc_window,input_type="datetime",output_units=aoi_units)
+        aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_plot_t_units,y_units=aoi_units)
 
         return avaoi, aoi_curve
 
-    def preprocess_and_get_aoi(self,rts_by_obs,include_routing,dv_option='scheduled_dv'):
+    def preprocess_and_get_aoi(self,rts_by_obs,include_routing,rt_dv_getter):
         #  note: I'm not particularly happy with how the code in this function and called by this function turned out ( it's messy). someday should try to re-factor it. TODO: refactor it
 
         av_aoi_by_targID = {}
@@ -651,18 +650,13 @@ class MetricsCalcs():
 
                     # figure out at which data route we meet the minimum DV downlink requirement
                     cum_dv = 0
-                    for dr in rts:
-                        if dv_option == 'scheduled_dv':
-                            cum_dv += dr.scheduled_dv
-                        elif dv_option == 'possible_dv':
-                            cum_dv += dr.data_vol
-                        else:
-                            raise NotImplementedError
+                    for rt in rts:
+                        cum_dv += rt_dv_getter(rt)
 
                         #  if we have reached our minimum required data volume amount...
                         if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop:
 
-                            dlnk_obs_times_mat[targ_indx].append([getattr(dr.get_dlnk(),time_option), obs_wind.start])
+                            dlnk_obs_times_mat[targ_indx].append([getattr(rt.get_dlnk(),time_option), obs_wind.start])
                             #  break because we shouldn't count additional down links from the same observation ( they aren't delivering updated information)
                             break
 
@@ -692,65 +686,70 @@ class MetricsCalcs():
 
         return av_aoi_by_targID,aoi_curves_by_targID
 
-    def assess_aoi_by_obs_target(self,rs_routes_by_obs,sched_routes,verbose = True):
+    def assess_aoi_by_obs_target(self,
+        possible_routes, 
+        executed_routes, 
+        include_routing=True,
+        rt_poss_dv_getter = rt_possible_dv_getter, 
+        rt_exec_dv_getter= rt_scheduled_dv_getter, 
+        verbose = True):
 
-        sched_rts_by_obs = self.get_routes_by_obs (sched_routes)
+        # possible routes by observation
+        poss_rts_by_obs = self.get_routes_by_obs(possible_routes)
+        exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
 
-        include_routing=True
+        poss_targIDs_found = list(set([targ_ID for obs in poss_rts_by_obs.keys() for targ_ID in obs.target_IDs]))
+        exec_targIDs_found = list(set([targ_ID for obs in exec_rts_by_obs.keys() for targ_ID in obs.target_IDs]))
 
-        rs_targIDs_found = list(set([targ_ID for obs in rs_routes_by_obs.keys() for targ_ID in obs.target_IDs]))
-        as_targIDs_found = list(set([targ_ID for obs in sched_rts_by_obs.keys() for targ_ID in obs.target_IDs]))
+        av_aoi_by_targID_poss,aoi_curves_by_targID_poss = self.preprocess_and_get_aoi(poss_rts_by_obs,include_routing,rt_poss_dv_getter)
+        av_aoi_by_targID_exec,aoi_curves_by_targID_exec = self.preprocess_and_get_aoi(exec_rts_by_obs,include_routing,rt_exec_dv_getter)
 
-        av_aoi_by_targID_rs,aoi_curves_by_targID_rs = self.preprocess_and_get_aoi(rs_routes_by_obs,include_routing,dv_option='possible_dv')
-        av_aoi_by_targID_sched,aoi_curves_by_targID_sched = self.preprocess_and_get_aoi(sched_rts_by_obs,include_routing,dv_option='scheduled_dv')
-
-        valid_rs = len(av_aoi_by_targID_rs.keys()) > 0
-        valid_sched = len(av_aoi_by_targID_sched.keys()) > 0
+        valid_poss = len(av_aoi_by_targID_poss.keys()) > 0
+        valid_exec = len(av_aoi_by_targID_exec.keys()) > 0
 
         stats =  {}
-        av_aoi_vals_rs = [av_aoi for targID,av_aoi in av_aoi_by_targID_rs.items() if targID in rs_targIDs_found]
-        av_aoi_vals_sched = [av_aoi for targID,av_aoi in av_aoi_by_targID_sched.items() if targID in as_targIDs_found]
-        stats['av_av_aoi_rs'] = np.mean(av_aoi_vals_rs) if valid_rs else None
-        stats['av_av_aoi_sched'] = np.mean(av_aoi_vals_sched) if valid_sched else None
-        stats['std_av_aoi_rs'] = np.std(av_aoi_vals_rs) if valid_rs else None
-        stats['std_av_aoi_sched'] = np.std(av_aoi_vals_sched) if valid_sched else None
-        stats['min_av_aoi_rs'] = np.min(av_aoi_vals_rs) if valid_rs else None
-        stats['min_av_aoi_sched'] = np.min(av_aoi_vals_sched) if valid_sched else None
-        stats['max_av_aoi_rs'] = np.max(av_aoi_vals_rs) if valid_rs else None
-        stats['max_av_aoi_sched'] = np.max(av_aoi_vals_sched) if valid_sched else None
+        av_aoi_vals_poss = [av_aoi for targID,av_aoi in av_aoi_by_targID_poss.items() if targID in poss_targIDs_found]
+        av_aoi_vals_exec = [av_aoi for targID,av_aoi in av_aoi_by_targID_exec.items() if targID in exec_targIDs_found]
+        stats['av_av_aoi_poss'] = np.mean(av_aoi_vals_poss) if valid_poss else None
+        stats['av_av_aoi_exec'] = np.mean(av_aoi_vals_exec) if valid_exec else None
+        stats['std_av_aoi_poss'] = np.std(av_aoi_vals_poss) if valid_poss else None
+        stats['std_av_aoi_exec'] = np.std(av_aoi_vals_exec) if valid_exec else None
+        stats['min_av_aoi_poss'] = np.min(av_aoi_vals_poss) if valid_poss else None
+        stats['min_av_aoi_exec'] = np.min(av_aoi_vals_exec) if valid_exec else None
+        stats['max_av_aoi_poss'] = np.max(av_aoi_vals_poss) if valid_poss else None
+        stats['max_av_aoi_exec'] = np.max(av_aoi_vals_exec) if valid_exec else None
 
-        stats['rs_targIDs_found'] = rs_targIDs_found
-        stats['as_targIDs_found'] = as_targIDs_found
-        stats['av_aoi_by_targID_rs'] = av_aoi_by_targID_rs
-        stats['av_aoi_by_targID_sched'] = av_aoi_by_targID_sched
-        stats['aoi_curves_by_targID_rs'] = aoi_curves_by_targID_rs
-        stats['aoi_curves_by_targID_sched'] = aoi_curves_by_targID_sched
+        stats['poss_targIDs_found'] = poss_targIDs_found
+        stats['exec_targIDs_found'] = exec_targIDs_found
+        stats['av_aoi_by_targID_poss'] = av_aoi_by_targID_poss
+        stats['av_aoi_by_targID_exec'] = av_aoi_by_targID_exec
+        stats['aoi_curves_by_targID_poss'] = aoi_curves_by_targID_poss
+        stats['aoi_curves_by_targID_exec'] = aoi_curves_by_targID_exec
 
         if verbose:
-            print('------------------------------')
-            print('AoI values (considering all obs windows from RS)')
+            print('AoI values (considering all "possible" obs windows)')
 
-            if not (valid_rs or valid_sched):
+            if not (valid_poss or valid_exec):
                 print('no routes found, no valid statistics to display')
                 return stats
 
-            if not valid_rs:
+            if not valid_poss:
                 print('no RS routes found')
-            if not valid_sched:
+            if not valid_exec:
                 print('no scheduled routes found')
 
-            if valid_rs:
-                print('num rs targ IDs: %d'%(len(rs_targIDs_found)))
-                print("%s: \t\t\t\t %f"%('av_av_aoi_rs',stats['av_av_aoi_rs']))
-                print("%s: %f"%('std_av_aoi_rs',stats['std_av_aoi_rs']))
-                print("%s: %f"%('min_av_aoi_rs',stats['min_av_aoi_rs']))
-                print("%s: %f"%('max_av_aoi_rs',stats['max_av_aoi_rs']))
-            if valid_sched:
-                print('num as targ IDs: %d'%(len(as_targIDs_found)))
-                print("%s: \t\t\t %f"%('av_av_aoi_sched',stats['av_av_aoi_sched']))
-                print("%s: %f"%('std_av_aoi_sched',stats['std_av_aoi_sched']))
-                print("%s: %f"%('min_av_aoi_sched',stats['min_av_aoi_sched']))
-                print("%s: %f"%('max_av_aoi_sched',stats['max_av_aoi_sched']))
+            if valid_poss:
+                print('num rs targ IDs: %d'%(len(poss_targIDs_found)))
+                print("%s: \t\t %f"%('av_av_aoi_poss',stats['av_av_aoi_poss']))
+                print("%s: %f"%('std_av_aoi_poss',stats['std_av_aoi_poss']))
+                print("%s: %f"%('min_av_aoi_poss',stats['min_av_aoi_poss']))
+                print("%s: %f"%('max_av_aoi_poss',stats['max_av_aoi_poss']))
+            if valid_exec:
+                print('num as targ IDs: %d'%(len(exec_targIDs_found)))
+                print("%s: \t\t %f"%('av_av_aoi_exec',stats['av_av_aoi_exec']))
+                print("%s: %f"%('std_av_aoi_exec',stats['std_av_aoi_exec']))
+                print("%s: %f"%('min_av_aoi_exec',stats['min_av_aoi_exec']))
+                print("%s: %f"%('max_av_aoi_exec',stats['max_av_aoi_exec']))
 
             # for targ_ID in av_aoi_by_targID.keys ():
             #     avaoi = av_aoi_by_targID.get(targ_ID,None)
@@ -805,7 +804,6 @@ class MetricsCalcs():
         stats['aoi_curves_by_sat_indx'] = aoi_curves_by_sat_indx
 
         if verbose:
-            print('------------------------------')
             print('Sat CMD AoI values')
             print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
             print("%s: %f"%('min_av_aoi',stats['min_av_aoi']))
@@ -840,7 +838,6 @@ class MetricsCalcs():
         stats['aoi_curves_by_sat_indx'] = aoi_curves_by_sat_indx
 
         if verbose:
-            print('------------------------------')
             print('Sat TLM AoI values')
             print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
             print("%s: %f"%('min_av_aoi',stats['min_av_aoi']))
@@ -905,7 +902,6 @@ class MetricsCalcs():
 
 
         if verbose:
-            print('------------------------------')
             print('Sat energy margin values')
 
             if not valid:
