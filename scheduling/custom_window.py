@@ -75,7 +75,7 @@ class ObsWindow(ActivityWindow):
 
         super(ObsWindow, self).combine_with_window(other_obs)
 
-    def calc_data_vol(self,pl_data_rate):
+    def set_data_vol(self,pl_data_rate):
         self.data_vol = (self.end- self.start).total_seconds()*pl_data_rate
         if self.original_data_vol is None:
             self.original_data_vol = self.data_vol
