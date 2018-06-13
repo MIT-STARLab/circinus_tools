@@ -137,12 +137,6 @@ class ActivityTimingHelper:
 
             act_transition_type = self.get_xlnk_transition_type(act1,act2)
 
-            # print(sat_indx1)
-            # print(act1)
-            # print(act2)
-            # print(act_transition_type)
-            # debug_tools.debug_breakpt()
-
         # get the transition time requirement between these activities
         transition_time_req_s = self.activity_params['transition_time_s'][trans_context][trans_activities_str][act_transition_type][self.activity_params_option]
 
