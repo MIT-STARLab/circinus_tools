@@ -287,10 +287,5 @@ def get_pairwise_overlap_max_dv(act1,act2,transition_time_req_s):
 
     act_1_and_2_max_overlap_dv = res['x'][0]
 
-    # print(act1)
-    # print(act2)
-    # print(act_1_and_2_max_overlap_dv)
-    # debug_tools.debug_breakpt()
-
     return act_1_and_2_max_overlap_dv
 
