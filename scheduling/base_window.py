@@ -177,6 +177,21 @@ class ActivityWindow(EventWindow):
 
         self.executed_data_vol = dv_used
 
+    def get_dv_for_end_time(self,end_time):
+        """get data volume assuming a new start time between original start time and center time"""
+        # the factor of 2 is here because we assume the act is symmetric
+        new_dv = (end_time - self.center).total_seconds()*self.ave_data_rate*2
+        assert(new_dv >= 0)
+        return new_dv
+
+    def get_dv_for_start_time(self,start_time):
+        """get data volume assuming a new end time between original end time and center time"""
+        # the factor of 2 is here because we assume the act is symmetric
+        new_dv = (self.center - start_time).total_seconds()*self.ave_data_rate*2
+        assert(new_dv >= 0)
+        return new_dv
+
+
 
 def standard_time_accessor(wind,time_prop):
     if time_prop == 'start':
@@ -230,3 +245,52 @@ def find_windows_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=
         last_windex_found = last_windex_found - 1
 
     return winds_found,(first_windex_found,last_windex_found)
+
+from scipy.optimize import linprog
+
+def get_pairwise_overlap_max_dv(act1,act2,transition_time_req_s):
+    """determines the max amount of dv that can be moved through act 1 and then act 2 when we factor in timing overlap"""
+
+    # notes: act2 is assumed to follow act1, and we assume that we're looking at a single contiguous stream of data volume that we're trying to move through both windows. For this reason, the max dv means that both windows carry the same dv. Assume a linear model of dv utilization change as time utilization changes. 
+
+    assert(act2.center >= act1.center)
+
+    # figure out when each activity ends given that 1. we utilize all of the time we possibly can from the act (up to the center time of the other act) and 2. we (symmetrically) utilize all of the time we possibly can from the OTHER act
+    transition_time_req_dt = timedelta(seconds=transition_time_req_s)
+
+    act1_end_max_act2_utilization = max(act1.center,act2.original_start-transition_time_req_dt)
+    act2_start_max_act2_utilization = min(act1_end_max_act2_utilization+transition_time_req_dt,act2.center)
+
+    act2_start_max_act1_utilization = min(act1.original_end+transition_time_req_dt,act2.center)
+    act1_end_max_act1_utilization = max(act1.center,act2_start_max_act1_utilization-transition_time_req_dt)
+
+    act1_dv_max_act1_utilization = act1.get_dv_for_end_time(act1_end_max_act1_utilization)
+    act1_dv_max_act2_utilization = act1.get_dv_for_end_time(act1_end_max_act2_utilization)
+
+    act2_dv_max_act1_utilization = act2.get_dv_for_start_time(act2_start_max_act1_utilization)
+    act2_dv_max_act2_utilization = act2.get_dv_for_start_time(act2_start_max_act2_utilization)
+
+    # figure out the best "middle point" of overlap between the two acts that maximizes dv availability for both. Solve this as a linear program because it's essentially a max(min(act1 dv, act2 dv)) problem that varies linearly with the overlap time
+
+    # variables are: 1. dv used by BOTH act1 and act2 (trying to solve for the same dv in both) and the fractional amount of the overlap time allocated to act2
+    cost = [-1,0] # negative for dv because linprog assumes minimization. No cost for the overlap fraction
+    bounds = [(0,None),(0,1.0)]  # don't bound the dv term, because that is enforced in constraints
+    A_ub = [[1,-1*(act1_dv_max_act2_utilization-act1_dv_max_act1_utilization)],
+            [1,-1*(act2_dv_max_act2_utilization-act2_dv_max_act1_utilization)]]
+    b_ub = [[act1_dv_max_act1_utilization],[act2_dv_max_act1_utilization]]
+
+    res = linprog(cost, A_ub=A_ub, b_ub=b_ub, bounds = bounds,method='simplex')
+
+    if not res['status'] == 0:
+        # for time being, error out...
+        raise RuntimeWarning('LP not solved successfully')
+
+    act_1_and_2_max_overlap_dv = res['x'][0]
+
+    # print(act1)
+    # print(act2)
+    # print(act_1_and_2_max_overlap_dv)
+    # debug_tools.debug_breakpt()
+
+    return act_1_and_2_max_overlap_dv
+
