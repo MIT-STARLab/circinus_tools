@@ -1,6 +1,9 @@
 # Code that handles activity transition times and such
 # 
 # @author Kit Kennedy
+#
+# Note that this code is rather ugly, because we use logic to get around the fact that we don't have a real pointing model for now
+# todo: this code really should be replaced with a pointing model in future work...
 
 from .scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 
@@ -45,9 +48,10 @@ class ActivityTimingHelper:
         else:
             return "inter-orbit"
 
-    def get_xlnk_intra_orbit_direction(self,xlnk):
+    def get_xlnk_intra_orbit_direction(self,xlnk,sat_of_interest_indx):
         tx_sat_id = self.sat_id_order[xlnk.tx_sat]
         rx_sat_id = self.sat_id_order[xlnk.rx_sat]
+        sat_of_interest_id = self.sat_id_order[sat_of_interest_indx]
 
         #  in this case, direction is determined by increasing satellite ID ( with a wraparound for last satellite ID in the orbit). "increasing" is is determined by checking inequality of strings
         if self.activity_params['intra-orbit_neighbor_direction_method'] == 'by_increasing_id':
@@ -55,25 +59,39 @@ class ActivityTimingHelper:
             rx_sat_orbit_name = self.get_sat_orbit_name(rx_sat_id)
 
             if tx_sat_orbit_name == rx_sat_orbit_name:
-                direction = "intra-orbit_decreasing"
+                direction = ""
 
-                if tx_sat_id < rx_sat_id:
-                    direction = "intra-orbit_increasing"
-                #  wrap around at the last id in the orbit is also considered increasing
-                if tx_sat_id == self.last_sat_id_by_orbit_name[tx_sat_orbit_name] and rx_sat_id == self.first_sat_id_by_orbit_name[rx_sat_orbit_name]:
-                    direction = "intra-orbit_increasing"
+                # now we check if the tx->rx ids are in the increasing orbit direction
+                if (tx_sat_id < rx_sat_id or 
+                    #  wrap around at the last id in the orbit is also considered increasing
+                    (tx_sat_id == self.last_sat_id_by_orbit_name[tx_sat_orbit_name] and rx_sat_id == self.first_sat_id_by_orbit_name[rx_sat_orbit_name]) ):
+
+                    if tx_sat_id==sat_of_interest_id:
+                        direction = "intra-orbit_increasing"
+                    elif rx_sat_id==sat_of_interest_id:
+                        direction = "intra-orbit_decreasing"
+
+                # now we check if the tx->rx ids are in the decreasing orbit direction
+                else:
+                    if tx_sat_id==sat_of_interest_id:
+                        direction = "intra-orbit_decreasing"
+                    elif rx_sat_id==sat_of_interest_id:
+                        direction = "intra-orbit_increasing"
+                    
+                # assert that a direction was found
+                assert( direction != "")
 
                 return direction
 
             else:
-                raise RuntimeWarning('This code should not be used for a non-intra-orbit crosslink')
+                raise RuntimeWarning('This code should not be used for an inter-orbit crosslink')
                
         else:
             raise NotImplementedError
 
-    def get_xlnk_transition_type(self,xlnk1,xlnk2):
+    def get_xlnk_transition_type(self,xlnk1,xlnk2,sat_of_interest_indx):
         """Very bespoke code for describing different xlnk transition conditions in a lookup table"""
-        # todo: this code really should be replaced with a pointing model in future work...
+        # sat_of_interest_indx is the satellite index from which we are assessing directions
 
         #  make sure that cross-link 2 comes after cross-link one, because the code assumes this
         assert(xlnk2.center >= xlnk1.center)
@@ -88,23 +106,24 @@ class ActivityTimingHelper:
 
         #  if they are both intra-orbit
         elif orbit_crossing_xlnk1 == 'intra-orbit':
-            if self.get_xlnk_intra_orbit_direction(xlnk1) == self.get_xlnk_intra_orbit_direction(xlnk2):
+            if self.get_xlnk_intra_orbit_direction(xlnk1,sat_of_interest_indx) == self.get_xlnk_intra_orbit_direction(xlnk2,sat_of_interest_indx):
                 return "intra-orbit,same direction"
             else:
                 return "intra-orbit,different direction"
 
         #  if they are both inter-orbit
         elif orbit_crossing_xlnk1 == 'inter-orbit':
-            xlnk1_tx_sat_id = self.sat_id_order[xlnk1.tx_sat]
-            xlnk2_rx_sat_id = self.sat_id_order[xlnk2.rx_sat]
+            xlnk1_partner_sat_id = self.sat_id_order[xlnk1.get_xlnk_partner(sat_of_interest_indx)]
+            xlnk2_partner_sat_id = self.sat_id_order[xlnk2.get_xlnk_partner(sat_of_interest_indx)]
+            sat_of_interest_id = self.sat_id_order[sat_of_interest_indx]
 
             # if the crosslink is between the same sats (both rx and tx matching)
             if xlnk1.tx_sat == xlnk2.tx_sat and xlnk1.rx_sat == xlnk2.rx_sat:
                 return "inter-orbit,same orbit,same satellite"
 
             # if not both rx and tx matching, check if tx on xlnk1 and rx on xlnk2 are the same orbit (so the satellite sitting in the middle of the xlnks is rxing and then txing to same orbit)
-            elif self.get_sat_orbit_name(xlnk1_tx_sat_id) == self.get_sat_orbit_name(xlnk2_rx_sat_id):
-                if xlnk1_tx_sat_id == xlnk2_rx_sat_id:
+            elif self.get_sat_orbit_name(xlnk1_partner_sat_id) == self.get_sat_orbit_name(xlnk2_partner_sat_id):
+                if xlnk1_partner_sat_id == xlnk2_partner_sat_id:
                     return "inter-orbit,same orbit,same satellite"
                 else:
                     return "inter-orbit,same orbit,different satellite"
@@ -134,8 +153,7 @@ class ActivityTimingHelper:
             if not sat_indx1 == sat_indx2:
                 raise NotImplementedError
 
-
-            act_transition_type = self.get_xlnk_transition_type(act1,act2)
+            act_transition_type = self.get_xlnk_transition_type(act1,act2,sat_indx1)
 
         # get the transition time requirement between these activities
         transition_time_req_s = self.activity_params['transition_time_s'][trans_context][trans_activities_str][act_transition_type][self.activity_params_option]
