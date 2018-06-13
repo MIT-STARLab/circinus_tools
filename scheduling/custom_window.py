@@ -36,8 +36,11 @@ class ObsWindow(ActivityWindow):
     def __repr__(self):
         return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
-    def get_code(self,sat_indx):
-        # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
+    def get_codename(self):
+        return 'obs'
+
+    def get_e_dot_codename(self,sat_indx):
+        # We don't actually use the index here - it's only used for cross-links. while we have it though might as well throw in an assertion check
         assert(sat_indx==self.sat_indx)
 
         return 'obs'
@@ -152,7 +155,11 @@ class DlnkWindow(CommWindow):
     def __repr__(self):
         return  "(DlnkWindow id %d sat %d dv %f gs %d %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol, self.gs_indx,tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
-    def get_code(self,sat_indx):
+
+    def get_codename(self):
+        return 'dlnk'
+
+    def get_e_dot_codename(self,sat_indx):
         # We don't actually use that index here it's only used for cross-links. while we have it though might as well throw in an assertion check
         assert(sat_indx==self.sat_indx)
 
@@ -240,7 +247,10 @@ class XlnkWindow(CommWindow):
     def rx_sat(self):
         return self.sat_indx if self.sat_indx != self.tx_sat else self.xsat_indx
 
-    def get_code(self,sat_indx):
+    def get_codename(self):
+        return 'xlnk'
+
+    def get_e_dot_codename(self,sat_indx):
         if self.symmetric:
             return 'xlnk_tx'
         else:
