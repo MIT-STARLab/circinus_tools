@@ -16,55 +16,33 @@ from circinus_tools import debug_tools
 class MetricsCalcs():
     """docstring for MetricsCalcs"""
 
-    def __init__(self, sim_params):
+    def __init__(self, metrics_params):
         """initializes based on parameters
         
         initializes based on parameters
         :param gp_params: global namespace parameters created from input files (possibly with some small non-structural modifications to params). The name spaces here should trace up all the way to the input files.
         :type params: dict
         """
-        scenario_params = sim_params['orbit_prop_params']['scenario_params']
-        sat_params = sim_params['orbit_prop_params']['sat_params']
-        obs_params = sim_params['orbit_prop_params']['obs_params']
-        sim_metrics_params = sim_params['const_sim_inst_params']['sim_metrics_params']
-        sim_plot_params = sim_params['const_sim_inst_params']['sim_plot_params']
-        as_params = sim_params['gp_general_params']['activity_scheduling_params']
-
-        # these are used for AoI calculation
-        self.met_obs_start_dt  = sim_params['const_sim_inst_params']['sim_run_params']['start_utc_dt']
-        self.met_obs_end_dt  = sim_params['const_sim_inst_params']['sim_run_params']['end_utc_dt']
-
-        # gp_inst_planning_params = gp_params['gp_instance_params']['planning_params']
-        # gp_general_other_params = gp_params['gp_general_params']['other_params']
-        # metrics_params = gp_params['gp_general_params']['metrics_params']
-        # plot_params = gp_params['gp_general_params']['plot_params']
-
-        # self.scenario_start_dt  = scenario_params['start_utc_dt']
-        self.num_sats=sat_params['num_sats']
-        self.num_targ = obs_params['num_targets']
-        self.all_targ_IDs = [targ['id'] for targ in obs_params['targets']]
-        self.min_obs_dv_dlnk_req = as_params['min_obs_dv_dlnk_req_Mb']
-
-        self.latency_calculation_params = sim_metrics_params['latency_calculation']
-        self.targ_id_ignore_list = sim_metrics_params['targ_id_ignore_list']
-        self.aoi_units = sim_metrics_params['aoi_units']
-        self.aoi_plot_t_units=sim_plot_params['aoi_plots']['x_axis_time_units']
-
-        self.sats_emin_Wh = []
-        self.sats_emax_Wh = []        
-        for p_params in sat_params['power_params_by_sat_id'].values():
-            sat_edot_by_mode,sat_batt_storage,power_units,charge_eff,discharge_eff = io_tools.parse_power_consumption_params(p_params)
-
-        # self.sats_emin_Wh = [p_params['battery_storage_Wh']['e_min'][p_params['battery_option']] for p_params in self.power_params]
-        # self.sats_emax_Wh = [p_params['battery_storage_Wh']['e_max'][p_params['battery_option']] for p_params in self.power_params]
-            self.sats_emin_Wh.append(sat_batt_storage['e_min'])
-            self.sats_emax_Wh.append(sat_batt_storage['e_max'])
+        self.met_obs_start_dt = metrics_params['met_obs_start_dt']
+        self.met_obs_end_dt = metrics_params['met_obs_end_dt']
+        self.num_sats = metrics_params['num_sats']
+        self.num_targ = metrics_params['num_targ']
+        self.all_targ_IDs = metrics_params['all_targ_IDs']
+        self.min_obs_dv_dlnk_req = metrics_params['min_obs_dv_dlnk_req']
+        self.latency_calculation_params = metrics_params['latency_calculation_params']
+        self.targ_id_ignore_list = metrics_params['targ_id_ignore_list']
+        self.aoi_units = metrics_params['aoi_units']
+        self.aoi_plot_t_units = metrics_params['aoi_plot_t_units']
+        self.sats_emin_Wh = metrics_params['sats_emin_Wh']
+        self.sats_emax_Wh = metrics_params['sats_emax_Wh']
+        self.sats_emin_Wh = metrics_params['sats_emin_Wh']
+        self.sats_emax_Wh = metrics_params['sats_emax_Wh']
 
         # the amount by which the minimum data volume is allowed to be lower than self.min_obs_dv_dlnk_req
         self.min_obs_dv_dlnk_req_slop = self.min_obs_dv_dlnk_req*0.01
 
         # if two downlink times are within this number of seconds, then they are counted as being at the same time for the purposes of AoI calculation
-        self.dlnk_same_time_slop_s = scenario_params['timestep_s'] - 1
+        self.dlnk_same_time_slop_s = metrics_params['timestep_s'] - 1
 
     def assess_dv_all_routes(self, routes,  verbose  = False):
         # DEPRECATED
