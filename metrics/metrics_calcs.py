@@ -758,7 +758,7 @@ class MetricsCalcs():
         return stats
 
     @staticmethod
-    def  get_aoi_results(update_hists, num_entities,aoi_units,t_units):
+    def  get_aoi_results(update_hists, num_entities,aoi_units,t_units,input_time_type):
         av_aoi_vals = []
         av_aoi_by_ent_indx = {}
         aoi_curves_vals = []
@@ -771,8 +771,8 @@ class MetricsCalcs():
 
             start_time = d_c_mat[0][0]
             end_time = d_c_mat[-1][0]
-            av_aoi = MetricsCalcs.calc_av_aoi( d_c_mat, start_time, end_time,input_type="seconds",output_units=aoi_units)
-            aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat,start_time,input_type="seconds",x_units=t_units,y_units=aoi_units)
+            av_aoi = MetricsCalcs.calc_av_aoi( d_c_mat, start_time, end_time,input_type=input_time_type,output_units=aoi_units)
+            aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat,start_time,input_type=input_time_type,x_units=t_units,y_units=aoi_units)
             
             av_aoi_vals.append(av_aoi)
             aoi_curves_vals.append(aoi_curve)
@@ -782,15 +782,16 @@ class MetricsCalcs():
         return av_aoi_vals,av_aoi_by_ent_indx,aoi_curves_vals,aoi_curves_by_ent_indx
 
 
-    def assess_aoi_sat_cmd(self,sats_cmd_update_hist,verbose = True):
+    def assess_aoi_sat_ttc_option(self,sats_ttc_update_hist,ttc_option,input_time_type='seconds',verbose = True):
         (av_aoi_vals,
             av_aoi_by_sat_indx,
             aoi_curves_vals,
             aoi_curves_by_sat_indx) = self.get_aoi_results(
-                sats_cmd_update_hist,
+                sats_ttc_update_hist,
                 self.num_sats,
                 self.aoi_units,
-                self.aoi_plot_t_units)
+                self.aoi_plot_t_units,
+                input_time_type=input_time_type)
 
         valid = len(av_aoi_vals) > 0
 
@@ -804,7 +805,10 @@ class MetricsCalcs():
         stats['aoi_curves_by_sat_indx'] = aoi_curves_by_sat_indx
 
         if verbose:
-            print('Sat CMD AoI values')
+            if ttc_option == 'tlm':
+                print('Sat TLM AoI values')
+            elif ttc_option == 'cmd':
+                print('Sat CMD AoI values')
             print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
             print("%s: %f"%('min_av_aoi',stats['min_av_aoi']))
             print("%s: %f"%('max_av_aoi',stats['max_av_aoi']))
@@ -815,41 +819,6 @@ class MetricsCalcs():
             #     print("sat_indx %d: av aoi %f"%(sat_indx,avaoi))
 
         return stats
-
-    def assess_aoi_sat_tlm(self,sats_tlm_update_hist,verbose = True):
-        (av_aoi_vals,
-            av_aoi_by_sat_indx,
-            aoi_curves_vals,
-            aoi_curves_by_sat_indx) =  self.get_aoi_results(
-                sats_tlm_update_hist,
-                self.num_sats,
-                self.aoi_units,
-                self.aoi_plot_t_units)
-
-        valid = len(av_aoi_vals) > 0
-
-        stats =  {}
-        stats['av_av_aoi'] = np.mean(av_aoi_vals) if valid else None
-        stats['min_av_aoi'] = np.min(av_aoi_vals) if valid else None
-        stats['max_av_aoi'] = np.max(av_aoi_vals) if valid else None
-        stats['std_av_aoi'] = np.std(av_aoi_vals) if valid else None
-
-        stats['av_aoi_by_sat_indx'] = av_aoi_by_sat_indx
-        stats['aoi_curves_by_sat_indx'] = aoi_curves_by_sat_indx
-
-        if verbose:
-            print('Sat TLM AoI values')
-            print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
-            print("%s: %f"%('min_av_aoi',stats['min_av_aoi']))
-            print("%s: %f"%('max_av_aoi',stats['max_av_aoi']))
-            print("%s: %f"%('std_av_aoi',stats['std_av_aoi']))
-
-            # for sat_indx in range(self.num_sats):
-            #     avaoi = av_aoi_by_sat_indx.get(sat_indx,None)
-            #     print("sat_indx %d: av aoi %f"%(sat_indx,avaoi))
-
-        return stats
-
 
 
     def assess_resource_margin(self,energy_usage,verbose = True):
