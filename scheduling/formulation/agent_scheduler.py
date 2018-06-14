@@ -18,7 +18,7 @@ class AgentScheduling(PyomoMILPScheduling):
 
 
         # to be instantiated in subclass
-        self.min_act_duration_s = None
+        self.act_timing_helper = None
         self.sat_activity_params = None
 
 
@@ -141,8 +141,8 @@ class AgentScheduling(PyomoMILPScheduling):
                 model_objs_act1 = act_model_objs_getter(act,model)
 
                 length = model_objs_act1['var_dv_utilization']/act.ave_data_rate
-                c_duration.add( length >= model_objs_act1['var_act_indic'] * self.min_act_duration_s[type(act)])
-                binding_expr_duration_by_act[act] = length - model_objs_act1['var_act_indic'] * self.min_act_duration_s[type(act)]
+                c_duration.add( length >= model_objs_act1['var_act_indic'] * self.act_timing_helper.get_act_min_duration(act))
+                binding_expr_duration_by_act[act] = length - model_objs_act1['var_act_indic'] * self.act_timing_helper.get_act_min_duration(act)
 
         return binding_expr_duration_by_act
 
@@ -169,7 +169,8 @@ class AgentScheduling(PyomoMILPScheduling):
                     assert(act2.center >= act1.center)
 
                     # get the transition time requirement between these activities
-                    transition_time_req = io_tools.get_transition_time_req(act1,act2,sat_indx,sat_indx,self.sat_activity_params)
+                    # transition_time_req = io_tools.get_transition_time_req(act1,act2,sat_indx,sat_indx,self.sat_activity_params)
+                    transition_time_req = self.act_timing_helper.get_transition_time_req(act1,act2,sat_indx,sat_indx)
 
                     # if there is enough transition time between the two activities, no constraint needs to be added
                     #  note that we are okay even if for some reason Act 2 starts before Act 1 ends, because time deltas return negative total seconds as well
@@ -237,7 +238,9 @@ class AgentScheduling(PyomoMILPScheduling):
                             continue
 
                         # get the transition time requirement between these activities
-                        transition_time_req = io_tools.get_transition_time_req(act1,act2,sat_indx,other_sat_indx,self.sat_activity_params)                   
+                        # transition_time_req = io_tools.get_transition_time_req(act1,act2,sat_indx,other_sat_indx,self.sat_activity_params)                   
+                        transition_time_req = self.act_timing_helper.get_transition_time_req(act1,act2,sat_indx,sat_indx)
+
 
                         # if there is enough transition time between the two activities, no constraint needs to be added
                         #  note that we are okay even if for some reason Act 2 starts before Act 1 ends, because time deltas return negative total seconds as well

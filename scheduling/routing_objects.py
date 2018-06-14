@@ -197,6 +197,10 @@ class DataRoute:
         return self.route[0]
 
     def get_dlnk( self):
+        assert(type(self.route[-1]) == DlnkWindow)
+        return self.route[-1]
+
+    def get_end( self):
         return self.route[-1]
 
     def has_xlnk(self):

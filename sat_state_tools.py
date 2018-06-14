@@ -37,7 +37,7 @@ def propagate_sat_ES(start_time_dt,end_time_dt,sat_indx,curr_ES_state,executable
 
         act_edot = 0
         for act in curr_acts:
-            act_edot += parsed_sat_power_params['sat_edot_by_mode'][act.get_code(sat_indx)]
+            act_edot += parsed_sat_power_params['sat_edot_by_mode'][act.get_e_dot_codename(sat_indx)]
 
         #  base-level satellite energy usage (not including additional activities)
         base_edot = parsed_sat_power_params['sat_edot_by_mode']['base']
