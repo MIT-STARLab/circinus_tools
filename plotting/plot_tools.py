@@ -834,16 +834,16 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
         if plot_indx == floor(num_targs/2):
             plt.ylabel('%s\n\n%s'%(ylabel,item_id))
         else:
-            plt.ylabel('%s'%(item_id))
+            plt.ylabel('%s\n'%(item_id))
 
 
         # no y-axis labels
         plt.tick_params(
             axis='y',
             which='both',
-            left='off',
+            left='on',
             right='off',
-            labelleft='off'
+            labelleft='on'
         )
 
         # set axis length.
