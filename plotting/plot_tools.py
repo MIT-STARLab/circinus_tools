@@ -533,7 +533,6 @@ def plot_energy_usage(
     if time_units == 'minutes':
         time_divisor = 60.0
     
-    # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
     end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
 
@@ -675,7 +674,6 @@ def plot_data_usage(
     if time_units == 'minutes':
         time_divisor = 60.0
     
-    # time_to_end = (plot_end-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
     end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
 
@@ -770,6 +768,100 @@ def plot_data_usage(
         legend_objects.append(d_min_plot)
     if ecl_plot: 
         legend_objects.append(ecl_plot)
+
+    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    plt.xlabel('Time (%s)'%(time_units))
+
+    # use the last axes to set the entire plot background color
+    axes.patch.set_facecolor('w')
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)
+
+
+def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
+
+    plot_start_dt = plot_params['plot_start_dt']
+    plot_end_dt = plot_params['plot_end_dt']
+    base_time_dt = plot_params['base_time_dt']
+
+    plot_bound_min_aoi_hours = plot_params['plot_bound_min_aoi_hours']
+    plot_bound_max_aoi_hours = plot_params['plot_bound_max_aoi_hours']
+
+    ylabel = plot_params.get('ylabel','Item')
+    plot_title = plot_params.get('plot_title','Activities Plot')
+    plot_size_inches = plot_params.get('plot_size_inches',(12,12))
+    show = plot_params.get('show',False)
+    fig_name = plot_params.get('fig_name','plots/aoi_plot.pdf')
+    time_units = plot_params.get('time_units','minutes')
+    plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
+
+    plot_labels = {
+        "aoi": "aoi",
+    }
+
+    if time_units == 'hours':
+        time_divisor = 3600
+    if time_units == 'minutes':
+        time_divisor = 60
+    
+    start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
+    end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
+
+    num_targs = len(item_ids_list)
+
+    #  make a new figure
+    plt.figure()
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+    # print fig.get_size_inches()
+
+    plt.title( plot_title)
+
+    #  these hold the very last plot object of a given type added. Used for legend below
+    aoi_plot = None
+
+    # for each agent
+    for  plot_indx, item_id in enumerate (item_ids_list):
+
+        #  make a subplot for each
+        axes = plt.subplot( num_targs,1,plot_indx+1)
+        if plot_indx == floor(num_targs/2):
+            plt.ylabel('%s\n\n%s'%(ylabel,item_id))
+        else:
+            plt.ylabel('%s'%(item_id))
+
+
+        # no y-axis labels
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left='off',
+            right='off',
+            labelleft='off'
+        )
+
+        # set axis length.
+        vert_min = plot_bound_min_aoi_hours
+        vert_max = plot_bound_max_aoi_hours
+        plt.axis((start_time, end_time, vert_min, vert_max))
+
+        current_axis = plt.gca()
+
+        # this_time_divisor = time_divisor/60.0
+        plot_times = [t + start_time for t in aoi_curves_by_item_id[item_id]['x']]
+
+        # the first return value is a handle for our line, everything else can be ignored
+        aoi_plot,*dummy = plt.plot(plot_times,aoi_curves_by_item_id[item_id]['y'], label =  plot_labels["aoi"])
+
+    legend_objects = []
+    if aoi_plot: 
+        legend_objects.append(aoi_plot)
 
     plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 

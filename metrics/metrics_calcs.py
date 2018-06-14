@@ -32,7 +32,6 @@ class MetricsCalcs():
         self.latency_calculation_params = metrics_params['latency_calculation_params']
         self.targ_id_ignore_list = metrics_params['targ_id_ignore_list']
         self.aoi_units = metrics_params['aoi_units']
-        self.aoi_plot_t_units = metrics_params['aoi_plot_t_units']
         self.sats_emin_Wh = metrics_params['sats_emin_Wh']
         self.sats_emax_Wh = metrics_params['sats_emax_Wh']
         self.sats_emin_Wh = metrics_params['sats_emin_Wh']
@@ -503,7 +502,7 @@ class MetricsCalcs():
         return aoi_curve
 
     @staticmethod
-    def get_av_aoi_routing(d_c_mat_targ,start_calc_window,end_calc_window,dlnk_same_time_slop_s,aoi_units='hours',aoi_plot_t_units='minutes'):
+    def get_av_aoi_routing(d_c_mat_targ,start_calc_window,end_calc_window,dlnk_same_time_slop_s,aoi_units='hours',aoi_x_axis_units='minutes'):
         """ preprocess delivery creation matrix and do AoI calculation, with routing
         
         this code first pre-processes the matrix to get rid of superfluous information that would throw off the AoI calculation. This essentially smooths down the data to the saw-like shape expected for an AoI (versus time) curve.  in the preprocessing we progress through delivery (downlink) times, looking for the earliest creation (observation) time for each delivery time. Here we account for the fact that it can take time to deliver data after its creation
@@ -549,14 +548,14 @@ class MetricsCalcs():
 
 
         avaoi = MetricsCalcs.calc_av_aoi( d_c_mat_filt, start_calc_window, end_calc_window,input_type="datetime",output_units=aoi_units)
-        aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_plot_t_units,y_units=aoi_units)
+        aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_x_axis_units,y_units=aoi_units)
 
         return avaoi, aoi_curve
 
     
 
     @staticmethod
-    def get_av_aoi_no_routing(d_c_mat_targ,start_calc_window,end_calc_window,aoi_units='hours',aoi_plot_t_units='minutes'):
+    def get_av_aoi_no_routing(d_c_mat_targ,start_calc_window,end_calc_window,aoi_units='hours',aoi_x_axis_units='minutes'):
         """ preprocess delivery creation matrix and do AoI calculation, without routing
         
         this code first pre-processes the matrix to get rid of superfluous information that would throw off the AoI calculation. This essentially smooths down the data to the saw-like shape expected for an AoI (versus time) curve.  in the preprocessing we progress through delivery (downlink) times, looking for the earliest creation (observation) time for each delivery time. Here we assume that delivery time equals creation time
@@ -588,11 +587,11 @@ class MetricsCalcs():
         d_c_mat_filt.append([end_calc_window,end_calc_window])
 
         avaoi = MetricsCalcs.calc_av_aoi( d_c_mat_filt, start_calc_window, end_calc_window,input_type="datetime",output_units=aoi_units)
-        aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_plot_t_units,y_units=aoi_units)
+        aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat_filt,start_calc_window,input_type="datetime",x_units=aoi_x_axis_units,y_units=aoi_units)
 
         return avaoi, aoi_curve
 
-    def preprocess_and_get_aoi(self,rts_by_obs,include_routing,rt_dv_getter):
+    def preprocess_and_get_aoi(self,rts_by_obs,include_routing,rt_dv_getter,aoi_x_axis_units):
         #  note: I'm not particularly happy with how the code in this function and called by this function turned out ( it's messy). someday should try to re-factor it. TODO: refactor it
 
         av_aoi_by_targID = {}
@@ -652,12 +651,12 @@ class MetricsCalcs():
                 if not include_routing:
                     dlnk_obs_times_mat_targ.sort(key=lambda row: row[1])  # sort by creation time
 
-                    av_aoi,aoi_curve = self.get_av_aoi_no_routing(dlnk_obs_times_mat_targ, self.met_obs_start_dt, self.met_obs_end_dt,aoi_units=self.aoi_units,aoi_plot_t_units=self.aoi_plot_t_units)
+                    av_aoi,aoi_curve = self.get_av_aoi_no_routing(dlnk_obs_times_mat_targ, self.met_obs_start_dt, self.met_obs_end_dt,aoi_units=self.aoi_units,aoi_x_axis_units=aoi_x_axis_units)
 
                 else:
                     dlnk_obs_times_mat_targ.sort(key=lambda row: row[0])  # sort by downlink time
 
-                    av_aoi,aoi_curve = self.get_av_aoi_routing(dlnk_obs_times_mat_targ,  self.met_obs_start_dt,self.met_obs_end_dt,self.dlnk_same_time_slop_s,aoi_units=self.aoi_units,aoi_plot_t_units=self.aoi_plot_t_units)
+                    av_aoi,aoi_curve = self.get_av_aoi_routing(dlnk_obs_times_mat_targ,  self.met_obs_start_dt,self.met_obs_end_dt,self.dlnk_same_time_slop_s,aoi_units=self.aoi_units,aoi_x_axis_units=aoi_x_axis_units)
                 
                 av_aoi_by_targID[targ_ID] = av_aoi
                 aoi_curves_by_targID[targ_ID] = aoi_curve
@@ -669,7 +668,8 @@ class MetricsCalcs():
         executed_routes, 
         include_routing=True,
         rt_poss_dv_getter = rt_possible_dv_getter, 
-        rt_exec_dv_getter= rt_scheduled_dv_getter, 
+        rt_exec_dv_getter= rt_scheduled_dv_getter,
+        aoi_x_axis_units = 'hours',
         verbose = True):
 
         # possible routes by observation
@@ -679,8 +679,8 @@ class MetricsCalcs():
         poss_targIDs_found = list(set([targ_ID for obs in poss_rts_by_obs.keys() for targ_ID in obs.target_IDs]))
         exec_targIDs_found = list(set([targ_ID for obs in exec_rts_by_obs.keys() for targ_ID in obs.target_IDs]))
 
-        av_aoi_by_targID_poss,aoi_curves_by_targID_poss = self.preprocess_and_get_aoi(poss_rts_by_obs,include_routing,rt_poss_dv_getter)
-        av_aoi_by_targID_exec,aoi_curves_by_targID_exec = self.preprocess_and_get_aoi(exec_rts_by_obs,include_routing,rt_exec_dv_getter)
+        av_aoi_by_targID_poss,aoi_curves_by_targID_poss = self.preprocess_and_get_aoi(poss_rts_by_obs,include_routing,rt_poss_dv_getter,aoi_x_axis_units)
+        av_aoi_by_targID_exec,aoi_curves_by_targID_exec = self.preprocess_and_get_aoi(exec_rts_by_obs,include_routing,rt_exec_dv_getter,aoi_x_axis_units)
 
         valid_poss = len(av_aoi_by_targID_poss.keys()) > 0
         valid_exec = len(av_aoi_by_targID_exec.keys()) > 0
@@ -736,31 +736,31 @@ class MetricsCalcs():
         return stats
 
     @staticmethod
-    def  get_aoi_results(update_hists, num_entities,aoi_units,t_units,input_time_type):
+    def  get_aoi_results(update_hists, num_agents,aoi_units,x_axis_t_units,input_time_type):
         av_aoi_vals = []
-        av_aoi_by_ent_indx = {}
+        av_aoi_by_agent_indx = {}
         aoi_curves_vals = []
-        aoi_curves_by_ent_indx = {}
+        aoi_curves_by_agent_indx = {}
 
-        for ent_indx in range(num_entities):
+        for agent_indx in range(num_agents):
 
-            update_hist = update_hists[ent_indx]
+            update_hist = update_hists[agent_indx]
             d_c_mat = [[t,lut] for t,lut in zip(update_hist.t,update_hist.last_update_time)]
 
             start_time = d_c_mat[0][0]
             end_time = d_c_mat[-1][0]
             av_aoi = MetricsCalcs.calc_av_aoi( d_c_mat, start_time, end_time,input_type=input_time_type,output_units=aoi_units)
-            aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat,start_time,input_type=input_time_type,x_units=t_units,y_units=aoi_units)
+            aoi_curve = MetricsCalcs.get_aoi_curve(d_c_mat,start_time,input_type=input_time_type,x_units=x_axis_t_units,y_units=aoi_units)
             
             av_aoi_vals.append(av_aoi)
             aoi_curves_vals.append(aoi_curve)
-            av_aoi_by_ent_indx[ent_indx] = av_aoi
-            aoi_curves_by_ent_indx[ent_indx] = aoi_curve
+            av_aoi_by_agent_indx[agent_indx] = av_aoi
+            aoi_curves_by_agent_indx[agent_indx] = aoi_curve
 
-        return av_aoi_vals,av_aoi_by_ent_indx,aoi_curves_vals,aoi_curves_by_ent_indx
+        return av_aoi_vals,av_aoi_by_agent_indx,aoi_curves_vals,aoi_curves_by_agent_indx
 
 
-    def assess_aoi_sat_ttc_option(self,sats_ttc_update_hist,ttc_option,input_time_type='seconds',verbose = True):
+    def assess_aoi_sat_ttc_option(self,sats_ttc_update_hist,ttc_option,input_time_type='seconds',aoi_x_axis_units = 'hours',verbose = True):
         (av_aoi_vals,
             av_aoi_by_sat_indx,
             aoi_curves_vals,
@@ -768,7 +768,7 @@ class MetricsCalcs():
                 sats_ttc_update_hist,
                 self.num_sats,
                 self.aoi_units,
-                self.aoi_plot_t_units,
+                aoi_x_axis_units,
                 input_time_type=input_time_type)
 
         valid = len(av_aoi_vals) > 0
