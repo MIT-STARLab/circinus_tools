@@ -48,7 +48,7 @@ class MetricsCalcs():
         self.latency_calculation_params = sim_metrics_params['latency_calculation']
         self.targ_id_ignore_list = sim_metrics_params['targ_id_ignore_list']
         self.aoi_units = sim_metrics_params['aoi_units']
-        self.aoi_plot_t_units=sim_plot_params['aoi_plots']['a_axis_time_units']
+        self.aoi_plot_t_units=sim_plot_params['aoi_plots']['x_axis_time_units']
 
         self.sats_emin_Wh = []
         self.sats_emax_Wh = []        
