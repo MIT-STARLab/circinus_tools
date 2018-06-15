@@ -10,7 +10,7 @@ from .scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 from circinus_tools import debug_tools
 
 class ActivityTimingHelper:
-    SUPPORTED_ORBIT_PROP_INPUTS_VERSIONS = ['0.7']
+    SUPPORTED_ORBIT_PROP_INPUTS_VERSIONS = ['0.8']
 
     def __init__(self,activity_params,sat_ids_by_orbit_name,sat_id_order,orbit_prop_inputs_version):
         self.sat_ids_by_orbit_name = sat_ids_by_orbit_name
@@ -24,7 +24,6 @@ class ActivityTimingHelper:
         #  this code very much depends on the structure of the orbit prop inputs json file, so we want to do a quick version check
         if not orbit_prop_inputs_version in self.SUPPORTED_ORBIT_PROP_INPUTS_VERSIONS:
             raise NotImplementedError
-
 
     def get_sat_orbit_name(self,sat_id):
         for orbit_name,sats in self.sat_ids_by_orbit_name.items():
@@ -54,7 +53,7 @@ class ActivityTimingHelper:
         sat_of_interest_id = self.sat_id_order[sat_of_interest_indx]
 
         #  in this case, direction is determined by increasing satellite ID ( with a wraparound for last satellite ID in the orbit). "increasing" is is determined by checking inequality of strings
-        if self.activity_params['intra-orbit_neighbor_direction_method'] == 'by_increasing_id':
+        if self.activity_params['intra-orbit_neighbor_direction_method'] == 'by_increasing_sat_index':
             tx_sat_orbit_name = self.get_sat_orbit_name(tx_sat_id)
             rx_sat_orbit_name = self.get_sat_orbit_name(rx_sat_id)
 
@@ -62,7 +61,8 @@ class ActivityTimingHelper:
                 direction = ""
 
                 # now we check if the tx->rx ids are in the increasing orbit direction
-                if (tx_sat_id < rx_sat_id or 
+                sat_indx_increasing = self.sat_id_order.index(tx_sat_id) < self.sat_id_order.index(rx_sat_id)
+                if (sat_indx_increasing or 
                     #  wrap around at the last id in the orbit is also considered increasing
                     (tx_sat_id == self.last_sat_id_by_orbit_name[tx_sat_orbit_name] and rx_sat_id == self.first_sat_id_by_orbit_name[rx_sat_orbit_name]) ):
 

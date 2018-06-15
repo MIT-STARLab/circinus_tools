@@ -8,12 +8,12 @@ import copy
 
 sat_ids_spec_opts = ['duplicate','synthesize']
 
-def parse_sat_ids(sat_ids_spec,force_duplicate = False):
+def parse_sat_ids(sat_ids_spec,sat_id_prefix,force_duplicate = False):
     if type (sat_ids_spec)==str:
         tokens = sat_ids_spec.split (',')
         if (tokens[0] in sat_ids_spec_opts) or force_duplicate:
             if  tokens[1] == 'range_inclusive':
-                sat_ids = [str(ID) for ID in range ( int(tokens[2]), int (tokens[3])+1)]
+                sat_ids = ["%s%s"%(sat_id_prefix,ID) for ID in range ( int(tokens[2]), int (tokens[3])+1)]
                 return sat_ids
             else:
                 raise NotImplementedError
@@ -24,7 +24,8 @@ def parse_sat_ids(sat_ids_spec,force_duplicate = False):
 def duplicate_entry_for_sat_ids(params_entry,force_duplicate = False):
     new_entries = []
 
-    sat_ids = parse_sat_ids(params_entry['sat_ids'],force_duplicate)
+    sat_id_prefix = params_entry.get('sat_id_prefix','')
+    sat_ids = parse_sat_ids(params_entry['sat_ids'],sat_id_prefix,force_duplicate)
 
     for sat_id in sat_ids:
         new_entry =  copy.copy (params_entry)
@@ -128,7 +129,7 @@ def sort_input_params_by_sat_IDs(params_list,sat_id_order):
     return sorted_params_list
 
 
-def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=None):
+def make_and_validate_sat_id_order(sat_id_order_pre,sat_id_prefix,num_satellites,all_sat_ids=None):
     """ makes (if necessary) and validates the sat ID order specification list
     
     converts the sat ID order list found in the orbit prop inputs file into a list that is usable for ordering satellites In internal CIRCINUS components. It is often specified as "default" in the input file. A valid output looks like this, for example:
@@ -139,7 +140,7 @@ def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=N
         "2",
         "my_favorite_satellite",
         99,
-        "5"
+        "sat5"
     ],
 
     In this case, the user has chosen to replace the normal satellite IDs 3 and 4  with custom IDs.  this is perfectly fine. Note that satellite IDs can be integers, strings, floats, whatever...
@@ -162,10 +163,10 @@ def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=N
     if sat_id_order_pre == 'default':
         #  if are provided a list of all the IDs, use that as the default
         if all_sat_ids:
-            sat_id_order = [str(sat_id) for sat_id in all_sat_ids]
+            sat_id_order = [sat_id for sat_id in all_sat_ids]
         #  if we are not provided a list of the all the IDs,  we assume that every ID is just an ordinal
         else:            
-            sat_id_order = [str(sat_indx) for sat_indx in range (num_satellites)]
+            sat_id_order = ["%s%s"%(sat_id_prefix,sat_indx) for sat_indx in range (num_satellites)]
     elif not type(sat_id_order_pre) == list:
         raise RuntimeError('Expected a list here')
 
@@ -175,6 +176,15 @@ def make_and_validate_sat_id_order(sat_id_order_pre,num_satellites,all_sat_ids=N
         raise Exception ("Every satellite ID should be unique") 
 
     return sat_id_order
+
+def validate_ids(validator,validatee):
+    for ID in validatee:
+        if not ID in validator:
+            raise ValueError('Did not find id in validator id list; ID: %s, validator: %s'%(ID,validator))
+
+    for ID in validator:
+        if not ID in validatee:
+            raise ValueError('Did not find expected id in validatee id list; ID: %s, validatee: %s'%(ID,validatee))
 
 def make_and_validate_gs_id_order(gs_params):
     """ makes and validates the gs ID order specification list
