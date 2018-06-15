@@ -6,6 +6,7 @@
 # todo: this code really should be replaced with a pointing model in future work...
 
 from .scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
+from functools import lru_cache
 
 from circinus_tools import debug_tools
 
@@ -133,6 +134,10 @@ class ActivityTimingHelper:
             raise NotImplementedError
 
 
+    # run this function with caching, because this function is midly expensive and might be called a bunch of times (this essentially just adds the overhead of a dict mapping previous inputs to previous outputs)
+    # disable the actual LRU mechanism - the dict will be augmented for every new set of args
+    # see: https://docs.python.org/3/library/functools.html
+    @lru_cache(maxsize=None)
     def get_transition_time_req(self,act1,act2,sat_indx1,sat_indx2):
         # todo: this code needs update to deal with more context-dependent transition times
 

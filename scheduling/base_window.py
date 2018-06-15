@@ -1,4 +1,6 @@
 from datetime import timedelta
+from scipy.optimize import linprog
+from functools import lru_cache
 
 from circinus_tools  import  constants as const
 
@@ -246,8 +248,11 @@ def find_windows_in_wind_list(curr_time_dt,start_windex,wind_list,time_accessor=
 
     return winds_found,(first_windex_found,last_windex_found)
 
-from scipy.optimize import linprog
 
+# run this function with caching, because this function is midly expensive and might be called a bunch of times (this essentially just adds the overhead of a dict mapping previous inputs to previous outputs)
+# disable the actual LRU mechanism - the dict will be augmented for every new set of args
+# see: https://docs.python.org/3/library/functools.html
+@lru_cache(maxsize=None)
 def get_pairwise_overlap_max_dv(act1,act2,transition_time_req_s):
     """determines the max amount of dv that can be moved through act 1 and then act 2 when we factor in timing overlap"""
 
