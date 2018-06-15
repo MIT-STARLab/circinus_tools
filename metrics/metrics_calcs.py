@@ -761,6 +761,8 @@ class MetricsCalcs():
 
 
     def assess_aoi_sat_ttc_option(self,sats_ttc_update_hist,ttc_option,input_time_type='seconds',aoi_x_axis_units = 'hours',verbose = True):
+        # sats_ttc_update_hist should ideally be in order of sat_indx
+
         (av_aoi_vals,
             av_aoi_by_sat_indx,
             aoi_curves_vals,
@@ -800,6 +802,7 @@ class MetricsCalcs():
 
 
     def assess_resource_margin(self,energy_usage,verbose = True):
+        # energy usage should be in order of sat indx
 
         e_margin_by_sat_indx = {}
         ave_e_margin = []
