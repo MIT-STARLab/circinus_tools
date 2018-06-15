@@ -829,10 +829,9 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     fig.set_size_inches( plot_size_inches)
     # print fig.get_size_inches()
 
-    plt.title( plot_title)
-
     #  these hold the very last plot object of a given type added. Used for legend below
     aoi_plot = None
+    first_item = True
 
     # for each agent
     for  plot_indx, item_id in enumerate (item_ids_list):
@@ -866,6 +865,11 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
 
         # the first return value is a handle for our line, everything else can be ignored
         aoi_plot,*dummy = plt.plot(plot_times,aoi_curves_by_item_id[item_id]['y'], label =  plot_labels["aoi"])
+
+        if first_item:
+            plt.title(plot_title)
+
+        first_item = False
 
     legend_objects = []
     if aoi_plot: 

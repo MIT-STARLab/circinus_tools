@@ -201,6 +201,21 @@ def make_and_validate_gs_id_order(gs_params):
 
     return gs_id_order
 
+def make_and_validate_target_id_order(obs_params):
+    """ makes and validates the gs ID order specification list
+    
+    """
+
+    # if the default is specified, then we'll make a default list based on the order in which we find IDs
+    targ_id_order = [str(targ['id']) for targ in obs_params['targets']]
+
+    if len(targ_id_order) != obs_params['num_targets']:
+        raise Exception ("Number of target IDs is not equal to number of targets specified in input file")
+    if len(set(targ_id_order)) != len(targ_id_order):
+        raise Exception ("Every target id should be unique") 
+
+    return targ_id_order
+
 def parse_power_consumption_params(p_params):
     edot_by_mode = {}
     batt_storage = {}
