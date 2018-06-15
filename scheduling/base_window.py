@@ -140,7 +140,7 @@ class ActivityWindow(EventWindow):
         # mark that timing has been updated
         self.timing_updated = True
 
-    def set_executable_properties(self,dv_used,dv_epsilon=1e-5):
+    def set_executable_properties(self,dv_used,act_min_duration_s=0,dv_epsilon=1e-5):
         """Set properties for scheduled execution of the window"""
 
         assert(dv_used <= self.data_vol + dv_epsilon)
@@ -149,7 +149,7 @@ class ActivityWindow(EventWindow):
 
         #  assume for now a linear correlation between time utilization and data volume utilization
         t_utilization = dv_used/self.data_vol if self.data_vol > dv_epsilon else 0.0
-        executable_duration = old_duration*t_utilization
+        executable_duration = max(old_duration*t_utilization,timedelta(seconds=act_min_duration_s))
 
         self.executable_start = self.center - executable_duration/2
         self.executable_end = self.center + executable_duration/2
