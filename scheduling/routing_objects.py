@@ -3,6 +3,7 @@
 # @author Kit Kennedy
 
 from copy import copy
+from datetime import timedelta
 
 from circinus_tools  import  constants as const
 from circinus_tools  import  time_tools as tt
@@ -283,7 +284,7 @@ class DataRoute:
             elif type(wind) == XlnkWindow:
                 self.route[windex] = xlnk_winds_dict[wind]
 
-    def validate (self,time_option='start_end',dv_epsilon=None):
+    def validate (self,act_timing_helper,time_option='start_end',dv_epsilon=None):
         """ validates timing and ordering of route
         
         This function is used to validate the correctness of a data route within the global planner. note that it should not be used in the constellation simulation for data validation, because it relies on start and end times in the underlying activity windows,  which are not safe to use outside the global planner
@@ -352,6 +353,14 @@ class DataRoute:
                 last_time = wind.end
             elif time_option=='center':
                 last_time = wind.center
+
+        for wind1,wind2 in zip(self.route[0:-1],self.route[1:]):
+             trans_time_s = act_timing_helper.get_transition_time_req(wind1,wind2,self.window_start_sats[wind2],self.window_start_sats[wind2])
+
+             sufficient_time = wind2.center - wind1.center >= timedelta(seconds=trans_time_s)
+
+             if not sufficient_time:
+                 raise RuntimeWarning(' found insufficient transition time between two windows in route; wind1: %s, wind2: %s, transition time required: %fs'%(wind1,wind2,trans_time_s))
 
     @staticmethod
     def determine_window_start_sats(wind_list):
@@ -689,7 +698,7 @@ class DataMultiRoute:
     def get_latency( self,units='minutes',obs_option = 'end', dlnk_option = 'center'):
         return self.data_routes[0].get_latency(units,obs_option,dlnk_option)
 
-    def validate (self,time_option='start_end'):
+    def validate (self,act_timing_helper,time_option='start_end'):
 
         # todo: remove this hack! It's for dealing with already-pickled RS outputs
         try:
@@ -699,7 +708,7 @@ class DataMultiRoute:
 
         for dr in self.data_routes:
             #  validate the data routes individually - this checks for temporal and data volume consistency within those routes
-            dr.validate(time_option)
+            dr.validate(act_timing_helper,time_option)
             #  validate that they all have the same initial observation and the same final downlink
             assert(dr.get_obs() == self.get_obs())
             assert(dr.get_dlnk() == self.get_dlnk())

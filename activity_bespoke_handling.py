@@ -94,9 +94,6 @@ class ActivityTimingHelper:
         """Very bespoke code for describing different xlnk transition conditions in a lookup table"""
         # sat_of_interest_indx is the satellite index from which we are assessing directions
 
-        #  make sure that cross-link 2 comes after cross-link one, because the code assumes this
-        assert(xlnk2.center >= xlnk1.center)
-
         # an intra-orbit xlnk or inter-orbit
         orbit_crossing_xlnk1 = self.get_xlnk_orbit_crossing(xlnk1)
         orbit_crossing_xlnk2 = self.get_xlnk_orbit_crossing(xlnk2)
@@ -139,7 +136,25 @@ class ActivityTimingHelper:
     # see: https://docs.python.org/3/library/functools.html
     @lru_cache(maxsize=None)
     def get_transition_time_req(self,act1,act2,sat_indx1,sat_indx2):
-        # todo: this code needs update to deal with more context-dependent transition times
+        """ Get requirement for transition time between two activities, in seconds
+        
+        Because transition times between activities are dependent on satellite pointing, we need to go through a complex procedure to figure out how much time is required between each. This function takes care of that calc.
+        :param act1: first activity
+        :type act1: ActivityWindow
+        :param act2: second activity. the center time of this activity must follow the center time of the first
+        :type act2: ActivityWindow
+        :param sat_indx1: satellite index on which act1 is being performed
+        :type sat_indx1: int
+        :param sat_indx2: satellite index on which act2 is being performed
+        :type sat_indx2: int
+        :returns: transition time required between end of act 1 and start of act 2, in seconds
+        :rtype: {float}
+        :raises: NotImplementedError
+        """
+        # todo: should be using a real pointing model here, not the glorified look up table approach that we use here
+
+        #  make sure that cross-link 2 comes after cross-link one, because the code assumes this
+        assert(act2.center >= act1.center)
 
         trans_context = None
         if sat_indx1==sat_indx2:
