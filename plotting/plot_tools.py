@@ -69,7 +69,7 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
 
                 #  figure out label location
                 #   put label in desired vertical spot
-                left_horizontal_loc = act_start + sat_plot_params['label_horz_offset']
+                left_horizontal_loc = act_start + sat_plot_params['label_horz_offset']/sat_plot_params['label_horz_divisor']
                 #  update the rotator value if we've already added this window to the plot before
                 if label_rotator_hist:
                     label_rotator = label_rotator_hist.get(wind,label_rotator)
@@ -155,9 +155,11 @@ def plot_all_agents_acts(
 
     if time_units == 'hours':
         time_divisor = 3600.0
+        label_horz_divisor = 60.0
     if time_units == 'minutes':
         time_divisor = 60.0
-    
+        label_horz_divisor = 1
+
     # time_to_end = (plot_end_dt-plot_start_dt).total_seconds()/time_divisor
     start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
     end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
@@ -265,6 +267,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
             xlnk_viz_objects = plot_window_schedule(current_axis,agents_xlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
             if len(xlnk_viz_objects) > 0:
@@ -289,6 +292,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
 
             dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
@@ -314,6 +318,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
 
             obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
@@ -371,6 +376,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
 
             label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
@@ -408,6 +414,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
 
             label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
@@ -443,6 +450,7 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor
             }
 
             label_getter = obs_label_getter if obs_label_getter else label_getter
@@ -561,18 +569,18 @@ def plot_energy_usage(
         #  make a subplot for each
         axes = plt.subplot( num_sats,1,plot_indx+1)
         if plot_indx == floor(num_sats/2):
-            plt.ylabel('Satellite Index\n\n' + str(sat_indx))
+            plt.ylabel('Satellite Index\n\n%d\n'%(sat_indx))
         else:
-            plt.ylabel('' + str(sat_indx))
+            plt.ylabel('%d\n'%(sat_indx))
 
 
         # no y-axis labels
         plt.tick_params(
             axis='y',
             which='both',
-            left='off',
+            left='on',
             right='off',
-            labelleft='off'
+            labelleft='on'
         )
 
         # set axis length.
@@ -702,18 +710,18 @@ def plot_data_usage(
         #  make a subplot for each
         axes = plt.subplot( num_sats,1,plot_indx+1)
         if plot_indx == floor(num_sats/2):
-            plt.ylabel('Satellite Index\n\n' + str(sat_indx))
+            plt.ylabel('Satellite Index\n\n%d\n'%(sat_indx))
         else:
-            plt.ylabel('' + str(sat_indx))
+            plt.ylabel('%d\n'%(sat_indx))
 
 
         # no y-axis labels
         plt.tick_params(
             axis='y',
             which='both',
-            left='off',
+            left='on',
             right='off',
-            labelleft='off'
+            labelleft='on'
         )
 
         # set axis length.
