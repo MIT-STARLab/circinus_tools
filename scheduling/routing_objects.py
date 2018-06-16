@@ -131,6 +131,9 @@ class DataRoute:
     def __eq__(self, other):
         return self.ID == other.ID
 
+    def __len__(self):
+        return len(self.route)
+
     def __copy__(self):
         newone = type(self)(None,None,dv=self.data_vol,obs_dv_multiplier=self.obs_dv_multiplier,ro_ID=copy(self.ID))
         #  make a shallow copy of these container objects -  we want to refer to the same nested objects within the containers, but want a new container in both cases

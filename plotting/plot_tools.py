@@ -152,6 +152,8 @@ def plot_all_agents_acts(
     xlnk_color_rollover = plot_params.get('xlnk_color_rollover',1)
     xlnk_colors = plot_params.get('xlnk_colors',['#FF0000'])
 
+    use_hatch_windows_executed = plot_params.get('use_hatch_windows_executed',True)
+
     fontsize_obs = 10
     fontsize_dlnk = 7
 
@@ -369,7 +371,7 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": None,
-                "plot_hatch": True,
+                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_xlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -410,7 +412,7 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#0000FF",
-                "plot_hatch": True,
+                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_dlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -449,7 +451,7 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#00FF00",
-                "plot_hatch": True,
+                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_obs_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -518,6 +520,8 @@ def plot_all_agents_acts(
     else:
         savefig(fig_name,format=plot_fig_extension)
 
+    plt.close(plt.gcf())
+
 
 def plot_routes(routes,agents_ids_list,include_labels=True,file_name='plots/quick_routes_plot.pdf'):
     # works for DataRoutes, DataMultiRoutes, etc...
@@ -571,6 +575,12 @@ def plot_routes(routes,agents_ids_list,include_labels=True,file_name='plots/quic
     plot_params['plot_xlnks_choices'] = False
     plot_params['plot_dlnks_choices'] = False
     plot_params['plot_obs_choices'] = False
+    
+    plot_params['use_hatch_windows_executed'] = True
+
+
+    plot_params['fig_name'] = file_name
+
 
     plot_all_agents_acts(
         agents_ids_list,
