@@ -1,11 +1,13 @@
 from math import floor
 from functools import partial
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import savefig
 from matplotlib.patches import Rectangle, Circle
 
 from circinus_tools import debug_tools
+from circinus_tools.scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 
 def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot_params,label_getter,color_getter=None):
 
@@ -130,8 +132,8 @@ def plot_all_agents_acts(
     plot_dlnks_choices = plot_params.get('plot_dlnks_choices',True)
     plot_obs_choices = plot_params.get('plot_obs_choices',True)
     plot_xlnks = plot_params.get('plot_xlnks',True)
-    plot_dlnks = plot_params.get('plot_dlnks',False)
-    plot_obs = plot_params.get('plot_obs',False)
+    plot_dlnks = plot_params.get('plot_dlnks',True)
+    plot_obs = plot_params.get('plot_obs',True)
 
     xlnk_label_getter = plot_params.get('xlnk_label_getter_func',None)
     dlnk_label_getter = plot_params.get('dlnk_label_getter_func',None)
@@ -334,21 +336,25 @@ def plot_all_agents_acts(
         #  plot the executed cross-links
         #  plot cross-links first, so that they are the furthest back (lowest z value) on the plot, and observations and downlinks will appear on top ( because there are generally a lot more cross-links than observations and down links)
         if plot_xlnks and agents_xlnk_winds is not None:
-            def label_getter(xlnk,sat_indx=agent_indx):
-                dr_id = None
-                if route_ids_by_wind:
-                    dr_indcs = route_ids_by_wind.get(xlnk,None)
-                    if not dr_indcs is None:
-                        dr_id = dr_indcs[xlnk_route_index_to_use]
+            # def label_getter(xlnk,sat_indx=agent_indx):
+            #     dr_id = None
+            #     if route_ids_by_wind:
+            #         dr_indcs = route_ids_by_wind.get(xlnk,None)
+            #         if not dr_indcs is None:
+            #             dr_id = dr_indcs[xlnk_route_index_to_use]
 
-                other_agent_indx = xlnk.get_xlnk_partner(agent_indx)
-                if not dr_id is None:
-                    label_text = "%d,%d" %(dr_id.get_indx(),other_agent_indx)
-                    label_text = "%s" %(dr_indcs)
-                else:         
-                    label_text = "%d" %(other_agent_indx)
+            #     other_agent_indx = xlnk.get_xlnk_partner(agent_indx)
+            #     if not dr_id is None:
+            #         label_text = "%d,%d" %(dr_id.get_indx(),other_agent_indx)
+            #         label_text = "%s" %(dr_indcs)
+            #     else:         
+            #         label_text = "%d" %(other_agent_indx)
 
-                return label_text
+            #     return label_text
+
+            def label_getter(xlnk,sat_indx):
+                rx_or_tx = 'rx' if xlnk.is_rx(sat_indx) else 'tx'
+                return "x%d,%s%d,dv %d/%d"%(xlnk.window_ID,rx_or_tx,xlnk.get_xlnk_partner(sat_indx),xlnk.scheduled_data_vol,xlnk.data_vol) 
 
             def color_getter(xlnk):
                 xlnk_color_indx = 0
@@ -390,9 +396,12 @@ def plot_all_agents_acts(
 
         # plot the executed down links
         if plot_dlnks and agents_dlnk_winds is not None:
+            # def label_getter(dlnk):
+            #     # todo: scheduled data vol here is deprecated
+            #     return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
+
             def label_getter(dlnk):
-                # todo: scheduled data vol here is deprecated
-                return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
+                return "d%d,g%d,dv %d/%d"%(dlnk.window_ID,dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
 
             def color_getter(dlnk):
                 return "#0000FF"
@@ -426,9 +435,12 @@ def plot_all_agents_acts(
 
         # plot the observations that are actually executed
         if plot_obs and agents_obs_winds is not None:
+            # def label_getter(obs):
+            #     # todo: scheduled data vol here is deprecated
+            #     return "obs %d, dv %d/%d"%(obs_count,obs.scheduled_data_vol,obs.data_vol)
+
             def label_getter(obs):
-                # todo: scheduled data vol here is deprecated
-                return "obs %d, dv %d/%d"%(obs_count,obs.scheduled_data_vol,obs.data_vol)
+                return "o%d, dv %d/%d"%(obs.window_ID,obs.scheduled_data_vol,obs.data_vol)
 
             def color_getter(obs):
                 return "#00FF00"
@@ -506,6 +518,70 @@ def plot_all_agents_acts(
     else:
         savefig(fig_name,format=plot_fig_extension)
 
+
+def plot_routes(routes,agents_ids_list,include_labels=True,file_name='plots/quick_routes_plot.pdf'):
+    # works for DataRoutes, DataMultiRoutes, etc...
+
+    plot_params = {}
+
+    # agents_ids = set()
+
+
+    plot_start_dt = datetime(2200,1,1,0,0,0)
+    plot_end_dt = datetime(1800,1,1,0,0,0)
+
+    rt_ids_by_wind = {}
+
+    obs_winds = [set() for index in range(len(agents_ids_list))]
+    xlnk_winds = [set() for index in range(len(agents_ids_list))]
+    dlnk_winds = [set() for index in range(len(agents_ids_list))]
+
+    for rt in routes:
+        winds = rt.get_winds()
+
+        for wind in winds:
+            rt_ids_by_wind.setdefault(wind, []).append(rt.ID)
+
+            plot_start_dt = min(plot_start_dt,wind.original_start)
+            plot_end_dt = max(plot_end_dt,wind.original_end)
+
+            if type(wind) == ObsWindow:
+                # agent_id = agents_ids_list.index(str(wind.sat_indx))
+                obs_winds[wind.sat_indx].add(wind)
+            if type(wind) == DlnkWindow:
+                # agent_id = agents_ids_list.index(str(wind.sat_indx))
+                dlnk_winds[wind.sat_indx].add(wind)
+            if type(wind) == XlnkWindow:
+                # agent_id = agents_ids_list.index(str(wind.sat_indx))
+                xlnk_winds[wind.sat_indx].add(wind)
+                # agent_id = agents_ids_list.index(str(wind.xsat_indx))
+                xlnk_winds[wind.xsat_indx].add(wind)            
+
+    # input params dict handling
+    plot_params['route_ids_by_wind'] = rt_ids_by_wind
+    plot_params['plot_start_dt'] = plot_start_dt
+    plot_params['plot_end_dt'] = plot_end_dt
+    plot_params['base_time_dt'] = plot_start_dt
+    plot_params['agent_id_order'] = agents_ids_list
+
+    plot_params['plot_include_obs_labels'] = include_labels
+    plot_params['plot_include_xlnk_labels'] = include_labels
+    plot_params['plot_include_dlnk_labels'] = include_labels
+
+    plot_params['plot_xlnks_choices'] = False
+    plot_params['plot_dlnks_choices'] = False
+    plot_params['plot_obs_choices'] = False
+
+    plot_all_agents_acts(
+        agents_ids_list,
+        [],
+        [list(winds) for winds in obs_winds],
+        [],
+        [list(winds) for winds in dlnk_winds],
+        [],
+        [list(winds) for winds in xlnk_winds],
+        plot_params
+    )
 
 def plot_energy_usage(
         sats_ids_list,
