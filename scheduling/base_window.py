@@ -162,7 +162,8 @@ class ActivityWindow(EventWindow):
         """Set properties for scheduled execution of the window"""
         #  note that this code does not keep the activity centered about its original time, as we usually do. for that reason the executed attributes should never be used in scheduling code
 
-        assert(dv_used <= self.data_vol + dv_epsilon)
+        # verify that no more dv was used than the absolute max possible for this window
+        assert(dv_used <= self.original_data_vol + dv_epsilon)
 
         #  to verify that we are setting these to the same values if they already exist
         if hasattr(self, 'executed_start'):
