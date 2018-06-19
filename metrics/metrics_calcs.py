@@ -34,8 +34,8 @@ class MetricsCalcs():
         self.aoi_units = metrics_params['aoi_units']
         self.sats_emin_Wh = metrics_params['sats_emin_Wh']
         self.sats_emax_Wh = metrics_params['sats_emax_Wh']
-        self.sats_emin_Wh = metrics_params['sats_emin_Wh']
-        self.sats_emax_Wh = metrics_params['sats_emax_Wh']
+        self.sats_dmin_Gb = metrics_params['sats_dmin_Gb']
+        self.sats_dmax_Gb = metrics_params['sats_dmax_Gb']
 
         # the amount by which the minimum data volume is allowed to be lower than self.min_obs_dv_dlnk_req
         self.min_obs_dv_dlnk_req_slop = self.min_obs_dv_dlnk_req*0.01
@@ -801,7 +801,7 @@ class MetricsCalcs():
         return stats
 
 
-    def assess_resource_margin(self,energy_usage,verbose = True):
+    def assess_energy_resource_margin(self,energy_usage,verbose = True):
         # energy usage should be in order of sat indx
 
         e_margin_by_sat_indx = {}
@@ -873,5 +873,83 @@ class MetricsCalcs():
             #     print("sat_indx %d: av e margin %f"%(sat_indx,e_margin_by_sat_indx[sat_indx]['ave']))
             #     print("sat_indx %d: min e margin %f"%(sat_indx,e_margin_by_sat_indx[sat_indx]['min']))
             #     print("sat_indx %d: max e margin %f"%(sat_indx,e_margin_by_sat_indx[sat_indx]['max']))
+
+        return stats
+
+    def assess_data_resource_margin(self,data_usage,verbose = True):
+        # energy usage should be in order of sat indx
+
+        d_margin_by_sat_indx = {}
+        ave_d_margin = []
+        ave_d_margin_prcnt = []
+        min_d_margin = []
+        min_d_margin_prcnt = []
+        max_d_margin = []
+        max_d_margin_prcnt = []
+        if data_usage:
+
+            for sat_indx in range (self.num_sats):
+                d_min_Mb = self.sats_dmin_Gb[sat_indx] * 1000
+                d_max_Mb = self.sats_dmax_Gb[sat_indx] * 1000
+                d_margin = [d_max_Mb - d for d in data_usage['d_sats'][sat_indx]]
+                max_margin = d_max_Mb-d_min_Mb
+                d_margin_prcnt = [100*(d_max_Mb - d)/max_margin for d in data_usage['d_sats'][sat_indx]]
+
+                d_ave = np.mean(d_margin)
+                d_ave_prcnt = np.mean(d_margin_prcnt)
+                d_max = np.max(d_margin)
+                d_max_prcnt = np.max(d_margin_prcnt)
+                d_min = np.min(d_margin)
+                d_min_prcnt = np.min(d_margin_prcnt)
+                d_margin_by_sat_indx[sat_indx] = {
+                    "ave": d_ave,
+                    "max": d_max,
+                    "min": d_min
+                }
+
+                ave_d_margin.append(d_ave)
+                ave_d_margin_prcnt.append(d_ave_prcnt)
+                min_d_margin.append(d_min)
+                min_d_margin_prcnt.append(d_min_prcnt)
+                max_d_margin.append(d_max)
+                max_d_margin_prcnt.append(d_max_prcnt)
+
+        valid = len(ave_d_margin) > 0
+
+        stats =  {}
+        stats['av_ave_d_margin'] = np.mean(ave_d_margin) if valid else None
+        stats['av_ave_d_margin_prcnt'] = np.mean(ave_d_margin_prcnt) if valid else None
+        stats['min_ave_d_margin'] = np.min(ave_d_margin) if valid else None
+        stats['min_ave_d_margin_prcnt'] = np.min(ave_d_margin_prcnt) if valid else None
+        stats['max_ave_d_margin'] = np.max(ave_d_margin) if valid else None
+        stats['max_ave_d_margin_prcnt'] = np.max(ave_d_margin_prcnt) if valid else None
+        stats['std_ave_d_margin'] = np.std(ave_d_margin) if valid else None
+        stats['std_ave_d_margin_prcnt'] = np.std(ave_d_margin_prcnt) if valid else None
+        stats['min_min_d_margin'] = np.min(min_d_margin) if valid else None
+        stats['min_min_d_margin_prcnt'] = np.min(min_d_margin_prcnt) if valid else None
+
+
+        if verbose:
+            print('Sat data margin values')
+
+            if not valid:
+                print('no routes found, no valid statistics to display')
+                return stats
+
+            # print("%s: %f"%('av_ave_d_margin',stats['av_ave_d_margin']))
+            print("%s: %f%%"%('av_ave_d_margin_prcnt',stats['av_ave_d_margin_prcnt']))
+            # print("%s: %f"%('min_ave_d_margin',stats['min_ave_d_margin']))
+            print("%s: %f%%"%('min_ave_d_margin_prcnt',stats['min_ave_d_margin_prcnt']))
+            # print("%s: %f"%('max_ave_d_margin',stats['max_ave_d_margin']))
+            print("%s: %f%%"%('max_ave_d_margin_prcnt',stats['max_ave_d_margin_prcnt']))
+            # print("%s: %f"%('std_ave_d_margin',stats['std_ave_d_margin']))
+            print("%s: %f%%"%('std_ave_d_margin_prcnt',stats['std_ave_d_margin_prcnt']))
+            # print("%s: %f"%('min_min_d_margin',stats['min_min_d_margin']))
+            print("%s: %f%%"%('min_min_d_margin_prcnt',stats['min_min_d_margin_prcnt']))
+
+            # for sat_indx in range(self.num_sats):
+            #     print("sat_indx %d: av d margin %f"%(sat_indx,d_margin_by_sat_indx[sat_indx]['ave']))
+            #     print("sat_indx %d: min d margin %f"%(sat_indx,d_margin_by_sat_indx[sat_indx]['min']))
+            #     print("sat_indx %d: max d margin %f"%(sat_indx,d_margin_by_sat_indx[sat_indx]['max']))
 
         return stats
