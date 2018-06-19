@@ -34,8 +34,8 @@ class MetricsCalcs():
         self.aoi_units = metrics_params['aoi_units']
         self.sats_emin_Wh = metrics_params['sats_emin_Wh']
         self.sats_emax_Wh = metrics_params['sats_emax_Wh']
-        self.sats_dmin_Gb = metrics_params['sats_dmin_Gb']
-        self.sats_dmax_Gb = metrics_params['sats_dmax_Gb']
+        self.sats_dmin_Gb = metrics_params.get('sats_dmin_Gb',None)
+        self.sats_dmax_Gb = metrics_params.get('sats_dmax_Gb',None)
 
         # the amount by which the minimum data volume is allowed to be lower than self.min_obs_dv_dlnk_req
         self.min_obs_dv_dlnk_req_slop = self.min_obs_dv_dlnk_req*0.01
