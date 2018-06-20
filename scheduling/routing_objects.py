@@ -717,15 +717,16 @@ class DataMultiRoute:
             assert(dr.get_dlnk() == self.get_dlnk())
 
         avail_dv_by_wind = {}
-        python_ids_by_wind = {} 
+        # python_ids_by_wind = {} 
         # figure out what window data volume is already occupied by the data routes within self        
         for dr in self.data_routes:
             
             for wind in dr.get_winds():
-                # make sure that all winds within the DMR are unique objects
-                python_ids_by_wind.setdefault(wind, id(wind))
-                if wind in python_ids_by_wind.keys():
-                    assert(id(wind) == python_ids_by_wind[wind])
+                # no longer should need to check this. It can be problematic in const sim, where window copies can float around.
+                # # make sure that all winds within the DMR are unique objects
+                # python_ids_by_wind.setdefault(wind, id(wind))
+                # if wind in python_ids_by_wind.keys():
+                #     assert(id(wind) == python_ids_by_wind[wind])
 
                 #  if we didn't yet encounter this window in any of the routes in self
                 avail_dv_by_wind.setdefault(wind,wind.data_vol)
