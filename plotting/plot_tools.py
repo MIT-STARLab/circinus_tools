@@ -41,13 +41,12 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
             bottom_base_vert_loc = viz_object_rotator
             bottom_vert_loc= bottom_base_vert_loc + sat_plot_params['viz_object_vert_bottom_base_offset']
 
-            hatch = None
+            hatch_pattern = sat_plot_params['hatch_pattern']
             fill = True
-            if sat_plot_params['plot_hatch']:
+            if hatch_pattern:
                 fill = False
-                hatch = '///////'
-                if overlapping_bounds:
-                    hatch = '.'
+            if overlapping_bounds:
+                hatch_pattern = '.'
 
             if color_getter:
                 color = color_getter(wind)
@@ -55,7 +54,7 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
                 color = sat_plot_params['plot_color']
 
             # plot the task duration
-            viz_object = Rectangle((act_start, bottom_vert_loc), act_end-act_start, bottom_vert_loc+1,alpha=1,fill=fill,color=color,hatch=hatch)
+            viz_object = Rectangle((act_start, bottom_vert_loc), act_end-act_start, bottom_vert_loc+1,alpha=1,fill=fill,color=color,hatch=hatch_pattern)
             current_axis.add_patch(viz_object)
             viz_objects.append(viz_object)
 
@@ -153,6 +152,16 @@ def plot_all_agents_acts(
     xlnk_colors = plot_params.get('xlnk_colors',['#FF0000'])
 
     use_hatch_windows_executed = plot_params.get('use_hatch_windows_executed',True)
+    obs_hatch_pattern = plot_params.get('obs_hatch_pattern',"o")
+    dlnk_hatch_pattern = plot_params.get('dlnk_hatch_pattern',"\\\\\\")
+    xlnk_hatch_pattern = plot_params.get('xlnk_hatch_pattern',"xx")
+
+    obs_choices_legend_name = plot_params.get('obs_choices_legend_name',"O poss.")
+    obs_exe_legend_name = plot_params.get('obs_exe_legend_name',"O exec.")
+    dlnk_choices_legend_name = plot_params.get('dlnk_choices_legend_name',"D poss.")
+    dlnk_exe_legend_name = plot_params.get('dlnk_exe_legend_name',"D exec.")
+    xlnk_choices_legend_name = plot_params.get('xlnk_choices_legend_name',"X poss.")
+    xlnk_exe_legend_name = plot_params.get('xlnk_exe_legend_name',"X exec.")
 
     fontsize_obs = 10
     fontsize_dlnk = 7
@@ -194,6 +203,8 @@ def plot_all_agents_acts(
 
     first_agent = True
 
+    middle_axes= None
+
     # for each agent
     obs_count = 0
     for  plot_indx, agent_id in enumerate (agents_ids_list):
@@ -215,6 +226,7 @@ def plot_all_agents_acts(
         axes = plt.subplot( num_agents,1,plot_indx+1)
         if plot_indx == floor(num_agents/2):
             plt.ylabel('%s\n\n%d'%(y_label,agent_indx))
+            middle_axes = axes
         else:
             plt.ylabel('' + str(agent_indx))
 
@@ -258,7 +270,6 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#FFBCBC",
-                "plot_hatch": False,
                 "include_labels": False,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -271,7 +282,8 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": None
             }
             xlnk_viz_objects = plot_window_schedule(current_axis,agents_xlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
             if len(xlnk_viz_objects) > 0:
@@ -283,7 +295,6 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFBFFF",
-                "plot_hatch": False,
                 "include_labels": False,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -296,7 +307,8 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": None
             }
 
             dlnk_viz_objects = plot_window_schedule(current_axis,agents_dlnk_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
@@ -309,7 +321,6 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFFFBF",
-                "plot_hatch": False,
                 "include_labels": False,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -322,7 +333,8 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": None
             }
 
             obs_viz_objects = plot_window_schedule(current_axis,agents_obs_winds_choices[agent_indx],start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
@@ -371,7 +383,6 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 "plot_color": None,
-                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_xlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -384,13 +395,16 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": xlnk_label_rotator_hist,
                 "label_rotation_rollover": xlnk_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": xlnk_hatch_pattern if use_hatch_windows_executed else None
             }
 
             label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
             color_getter = xlnk_color_getter if xlnk_color_getter else color_getter
             # supply the function with the agent index (freezes the current agent indx as an argument)
             label_getter_agent = partial(label_getter, sat_indx=agent_indx)
+
+            # debug_tools.debug_breakpt()
 
             xlnk_viz_objects = plot_window_schedule(current_axis,agents_xlnk_winds[agent_indx],start_getter_reg,end_getter_reg,agent_plot_params,label_getter_agent,color_getter)
             if len(xlnk_viz_objects) > 0:
@@ -412,7 +426,6 @@ def plot_all_agents_acts(
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#0000FF",
-                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_dlnk_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -425,7 +438,8 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": dlnk_label_rotator_hist,
                 "label_rotation_rollover": dlnk_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": dlnk_hatch_pattern if use_hatch_windows_executed else None
             }
 
             label_getter = dlnk_label_getter if dlnk_label_getter else label_getter
@@ -445,13 +459,12 @@ def plot_all_agents_acts(
                 return "o%d, dv %d/%d"%(obs.window_ID,obs.scheduled_data_vol,obs.data_vol)
 
             def color_getter(obs):
-                return "#00FF00"
+                return "#00CC66"
 
             agent_plot_params = {
                 "plot_start_dt": plot_start_dt,
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#00FF00",
-                "plot_hatch": use_hatch_windows_executed,
                 "include_labels": plot_include_obs_labels,
                 "fontsize": 7,
                 "base_time_dt": base_time_dt,
@@ -464,7 +477,8 @@ def plot_all_agents_acts(
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": obs_label_rotator_hist,
                 "label_rotation_rollover": obs_label_rotation_rollover,
-                "label_horz_divisor": label_horz_divisor
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": obs_hatch_pattern if use_hatch_windows_executed else None
             }
 
             label_getter = obs_label_getter if obs_label_getter else label_getter
@@ -489,28 +503,28 @@ def plot_all_agents_acts(
 
     legend_objects = []
     legend_objects_labels = []
-    if d_w_obj: 
-        legend_objects.append(d_w_obj)
-        legend_objects_labels.append('D all')
-    if d_obj: 
-        legend_objects.append(d_obj)
-        legend_objects_labels.append('Dlnk')
-    if x_w_obj: 
-        legend_objects.append(x_w_obj)
-        legend_objects_labels.append('X all')
-    if x_obj: 
-        legend_objects.append(x_obj)
-        legend_objects_labels.append('Xlnk')
     if o_w_obj: 
         legend_objects.append(o_w_obj)
-        legend_objects_labels.append('O all')
+        legend_objects_labels.append(obs_choices_legend_name)
     if o_obj: 
         legend_objects.append(o_obj)
-        legend_objects_labels.append('Obs')
+        legend_objects_labels.append(obs_exe_legend_name)
+    if d_w_obj: 
+        legend_objects.append(d_w_obj)
+        legend_objects_labels.append(dlnk_choices_legend_name)
+    if d_obj: 
+        legend_objects.append(d_obj)
+        legend_objects_labels.append(dlnk_exe_legend_name)
+    if x_w_obj: 
+        legend_objects.append(x_w_obj)
+        legend_objects_labels.append(xlnk_choices_legend_name)
+    if x_obj: 
+        legend_objects.append(x_obj)
+        legend_objects_labels.append(xlnk_exe_legend_name)
 
-    plt.legend(legend_objects, legend_objects_labels ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    middle_axes.legend(legend_objects, legend_objects_labels ,bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,fontsize=16)
 
-    plt.xlabel('Time (%s)'%(time_units))
+    plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
     axes.patch.set_facecolor('w')
