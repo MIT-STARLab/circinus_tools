@@ -74,10 +74,14 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
                 #  update the rotator value if we've already added this window to the plot before
                 if label_rotator_hist:
                     label_rotator = label_rotator_hist.get(wind,label_rotator)
+
                 bottom_vert_loc= bottom_base_vert_loc + sat_plot_params['label_vert_bottom_base_offset'] + label_rotator * sat_plot_params['label_vert_spacing']
 
+                # for hacking the location...
+                # bottom_vert_loc = viz_object_rotator
+
                 #  add label
-                plt.text(left_horizontal_loc, bottom_vert_loc, label_text , fontsize=sat_plot_params['fontsize'], color = 'k')
+                plt.text(left_horizontal_loc, bottom_vert_loc, label_text , fontsize=sat_plot_params['label_fontsize'], fontweight=sat_plot_params['label_fontweight'],color = 'k')
 
                 #  update label rotator
                 label_rotator = (label_rotator+1)% sat_plot_params['label_rotation_rollover']
@@ -163,8 +167,9 @@ def plot_all_agents_acts(
     xlnk_choices_legend_name = plot_params.get('xlnk_choices_legend_name',"X poss.")
     xlnk_exe_legend_name = plot_params.get('xlnk_exe_legend_name',"X exec.")
 
-    fontsize_obs = 10
-    fontsize_dlnk = 7
+    label_fontsize = plot_params.get('label_fontsize',7)
+    label_horz_offset = plot_params.get('label_horz_offset',-0.3)
+    label_fontweight = plot_params.get('label_fontweight','normal')
 
     if time_units == 'hours':
         time_divisor = 3600.0
@@ -271,13 +276,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#FFBCBC",
                 "include_labels": False,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.5,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": xlnk_label_rotator_hist,
@@ -296,13 +302,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFBFFF",
                 "include_labels": False,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.5,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": dlnk_label_rotator_hist,
@@ -322,13 +329,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 "plot_color": "#BFFFBF",
                 "include_labels": False,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": obs_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.1,
                 "label_vert_spacing": 0.2,
                 "label_rotator_hist": obs_label_rotator_hist,
@@ -384,13 +392,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 "plot_color": None,
                 "include_labels": plot_include_xlnk_labels,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.605,
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": xlnk_label_rotator_hist,
@@ -427,13 +436,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#0000FF",
                 "include_labels": plot_include_dlnk_labels,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.305,
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": dlnk_label_rotator_hist,
@@ -466,13 +476,14 @@ def plot_all_agents_acts(
                 "plot_end_dt": plot_end_dt,
                 # "plot_color": "#00FF00",
                 "include_labels": plot_include_obs_labels,
-                "fontsize": 7,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
                 "base_time_dt": base_time_dt,
                 "time_divisor": time_divisor,
                 "viz_object_vert_bottom_base_offset": 0,
                 "viz_object_rotator_hist": obs_rectangle_rotator_hist,
                 "viz_object_rotation_rollover": 2,
-                "label_horz_offset": -0.3,
+                "label_horz_offset": label_horz_offset,
                 "label_vert_bottom_base_offset": 0.05,
                 "label_vert_spacing": 0.1,
                 "label_rotator_hist": obs_label_rotator_hist,
