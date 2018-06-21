@@ -628,7 +628,7 @@ def plot_energy_usage(
         "e usage": "e usage",
         "e max": "e max",
         "e min": "e min",
-        "ecl": "ecl"
+        "ecl": "eclipse"
     }
 
     plot_start_dt = plot_params['plot_start_dt']
@@ -680,7 +680,8 @@ def plot_energy_usage(
         #  make a subplot for each
         axes = plt.subplot( num_sats,1,plot_indx+1)
         if plot_indx == floor(num_sats/2):
-            plt.ylabel('Satellite Index\n\n%d\n'%(sat_indx))
+            plt.ylabel('Satellite Index,\nenergy storage (Wh)\n\n%d\n'%(sat_indx))
+            middle_axes = axes
         else:
             plt.ylabel('%d\n'%(sat_indx))
 
@@ -746,9 +747,9 @@ def plot_energy_usage(
     if ecl_plot: 
         legend_objects.append(ecl_plot)
 
-    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    middle_axes.legend(handles=legend_objects ,bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,fontsize=16)
 
-    plt.xlabel('Time (%s)'%(time_units))
+    plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
     axes.patch.set_facecolor('w')
@@ -769,7 +770,7 @@ def plot_data_usage(
         "d usage": "d usage",
         "d max": "d max",
         "d min": "d min",
-        "ecl": "ecl"
+        "ecl": "eclipse"
     }
 
     plot_start_dt = plot_params['plot_start_dt']
@@ -821,7 +822,8 @@ def plot_data_usage(
         #  make a subplot for each
         axes = plt.subplot( num_sats,1,plot_indx+1)
         if plot_indx == floor(num_sats/2):
-            plt.ylabel('Satellite Index\n\n%d\n'%(sat_indx))
+            plt.ylabel('Satellite Index,\ndata storage (Gb)\n\n%d\n'%(sat_indx))
+            middle_axes = axes
         else:
             plt.ylabel('%d\n'%(sat_indx))
 
@@ -888,9 +890,9 @@ def plot_data_usage(
     if ecl_plot: 
         legend_objects.append(ecl_plot)
 
-    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    middle_axes.legend(handles=legend_objects ,bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,fontsize=16)
 
-    plt.xlabel('Time (%s)'%(time_units))
+    plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
     axes.patch.set_facecolor('w')
