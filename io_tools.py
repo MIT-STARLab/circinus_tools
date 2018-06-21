@@ -239,3 +239,17 @@ def parse_power_consumption_params(p_params):
     discharge_eff = p_params['battery_storage_Wh']['discharge_efficiency']
 
     return edot_by_mode,batt_storage,power_units,charge_eff,discharge_eff
+
+def dlnk_direction_enabled(tx_sat_id,gs_id,link_disables):
+    """check if dlnk between sat indx and gs is enabled"""
+
+    if gs_id in link_disables['dlnk_direc_disabled_gs_ID_by_sat_IDstr'].get(tx_sat_id,[]):
+        return False
+    return True
+
+def xlnk_direction_enabled(tx_sat_id,rx_sat_id,link_disables):
+    """check if dlnk between tx sat indx and rx sat indx is enabled"""
+
+    if rx_sat_id in link_disables['xlnk_direc_disabled_xsat_ID_by_sat_IDstr'].get(tx_sat_id,[]):
+        return False
+    return True

@@ -10,6 +10,7 @@ import collections
 from copy import copy, deepcopy
 
 from circinus_tools  import time_tools as tt
+from circinus_tools  import io_tools
 from circinus_tools  import  constants as const
 from circinus_tools.scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow, EclipseWindow
 from circinus_tools.scheduling.schedule_objects  import Dancecard
@@ -36,6 +37,10 @@ class SchedIOProcessor():
         gp_general_other_params = module_params['gp_general_params']['other_params']
         data_rates_accesses_params = module_params['data_rates_params']['accesses_data_rates']
         data_rates_other_params = module_params['data_rates_params']['other_data']
+
+        self.link_disables = module_params['orbit_link_params']['link_disables']
+        self.sat_id_order = sat_params['sat_id_order']
+        self.gs_id_order = gs_params['gs_id_order']
 
         #  common parameters used for processing  multiple types of input windows
         # scenario_start: datetime storing the start of the overall simulation period
@@ -181,7 +186,10 @@ class SchedIOProcessor():
         xlink_winds = [[[] for j in range(self.num_sats)] for i in range(self.num_sats)]
         for sat_indx in range(self.num_sats):
             # xlnk_times  matrix should be symmetrical, so there's no reason to look at lower left  triangle
+            sat_id = self.sat_id_order[sat_indx]
+
             for xsat_indx in range(sat_indx+1,self.num_sats):
+                xsat_id = self.sat_id_order[xsat_indx]
                 xlnk_list = self.xlnk_times[sat_indx][xsat_indx]
 
                 for xlnk_indx, xlnk in enumerate(xlnk_list):
@@ -223,8 +231,11 @@ class SchedIOProcessor():
                         next_window_uid = make_xlnk_wind(True,None,next_window_uid,rates_mat_dv_indx=1)
                     #  otherwise, we have to make a window for each of the satellites that is transmitting
                     else:
-                        if sat_indx_tx: next_window_uid = make_xlnk_wind( False,sat_indx,next_window_uid,rates_mat_dv_indx=1)
-                        if xsat_indx_tx: next_window_uid = make_xlnk_wind( False,xsat_indx,next_window_uid,rates_mat_dv_indx=2)
+                        sat_tx_enable = io_tools.xlnk_direction_enabled(sat_id,xsat_id,self.link_disables) if sat_indx_tx else False
+                        xsat_tx_enable = io_tools.xlnk_direction_enabled(xsat_id,sat_id,self.link_disables) if xsat_indx_tx else False
+
+                        if sat_indx_tx and sat_tx_enable: next_window_uid = make_xlnk_wind( False,sat_indx,next_window_uid,rates_mat_dv_indx=1)
+                        if xsat_indx_tx and xsat_tx_enable: next_window_uid = make_xlnk_wind( False,xsat_indx,next_window_uid,rates_mat_dv_indx=2)
 
 
             # sort the xlink windows for convenience
@@ -241,12 +252,15 @@ class SchedIOProcessor():
         for sat_indx, all_sat_dlnk in enumerate( self.dlnk_times):
                         
             sat_dlnk_winds = []
+            sat_id = self.sat_id_order[sat_indx]
 
             for gs_indx, dlnk_list in enumerate(all_sat_dlnk):
 
                 # if we're ignoring this GS
                 if self.all_gs_IDs[gs_indx] in self.gs_id_ignore_list:
                     continue
+
+                gs_id = self.gs_id_order[gs_indx]
 
                 # if we're disabling dlnk for this sat
                 if str(sat_indx) in self.sat_indcs_disable_dlnk:
@@ -266,7 +280,9 @@ class SchedIOProcessor():
                     rates_mat =  self.dlnk_rates[new_wind.sat_indx][new_wind.gs_indx][new_wind.sat_gs_indx]
                     new_wind.set_data_vol(rates_mat)
 
-                    if new_wind.data_vol >  self.min_allowed_dv_dlnk:
+                    sat_tx_enable = io_tools.dlnk_direction_enabled(sat_id,gs_id,self.link_disables)
+
+                    if new_wind.data_vol >  self.min_allowed_dv_dlnk and sat_tx_enable:
 
                         dlink_winds[sat_indx][gs_indx].append (new_wind) 
                         sat_dlnk_winds.append(new_wind)
