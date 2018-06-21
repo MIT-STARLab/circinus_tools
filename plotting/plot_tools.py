@@ -5,6 +5,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import savefig
 from matplotlib.patches import Rectangle, Circle
+from matplotlib import rcParams
 
 from circinus_tools import debug_tools
 from circinus_tools.scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
@@ -79,6 +80,9 @@ def plot_window_schedule(current_axis,winds,get_start_func,get_end_func,sat_plot
 
                 # for hacking the location...
                 # bottom_vert_loc = viz_object_rotator
+
+                # if wind.window_ID == 46:
+                #     bottom_vert_loc = 0.5
 
                 #  add label
                 plt.text(left_horizontal_loc, bottom_vert_loc, label_text , fontsize=sat_plot_params['label_fontsize'], fontweight=sat_plot_params['label_fontweight'],color = 'k')
@@ -171,6 +175,7 @@ def plot_all_agents_acts(
     label_horz_offset = plot_params.get('label_horz_offset',-0.3)
     label_fontweight = plot_params.get('label_fontweight','normal')
 
+
     if time_units == 'hours':
         time_divisor = 3600.0
         label_horz_divisor = 60.0
@@ -186,6 +191,17 @@ def plot_all_agents_acts(
 
     #  make a new figure
     plt.figure()
+
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
     #  create subplots for satellites
     fig = plt.gcf()
@@ -215,18 +231,6 @@ def plot_all_agents_acts(
     for  plot_indx, agent_id in enumerate (agents_ids_list):
         #  get the index for this ID
         agent_indx = agent_id_order.index(str(agent_id))
-
-        SMALL_SIZE = 8
-        MEDIUM_SIZE = 10
-        BIGGER_SIZE = 15
-
-        plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
-        plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
-        plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
-        plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
-        plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-        plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
         axes = plt.subplot( num_agents,1,plot_indx+1)
         if plot_indx == floor(num_agents/2):
@@ -646,7 +650,6 @@ def plot_energy_usage(
     time_units = plot_params.get('time_units','minutes')
     plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
 
-
     if time_units == 'hours':
         time_divisor = 3600.0
     if time_units == 'minutes':
@@ -659,6 +662,18 @@ def plot_energy_usage(
 
     #  make a new figure
     plt.figure()
+
+
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
     #  create subplots for satellites
     fig = plt.gcf()
@@ -788,7 +803,6 @@ def plot_data_usage(
     time_units = plot_params.get('time_units','minutes')
     plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
 
-
     if time_units == 'hours':
         time_divisor = 3600.0
     if time_units == 'minutes':
@@ -801,6 +815,17 @@ def plot_data_usage(
 
     #  make a new figure
     plt.figure()
+
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
     #  create subplots for satellites
     fig = plt.gcf()
@@ -919,7 +944,8 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     fig_name = plot_params.get('fig_name','plots/aoi_plot.pdf')
     time_units = plot_params.get('time_units','minutes')
     plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
-
+    include_legend = plot_params.get('include_legend',True)
+    
     plot_labels = {
         "aoi": "aoi",
     }
@@ -937,6 +963,17 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     #  make a new figure
     plt.figure()
 
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
     #  create subplots for satellites
     fig = plt.gcf()
     fig.set_size_inches( plot_size_inches)
@@ -946,13 +983,15 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     aoi_plot = None
     first_item = True
 
+    num_items = len(item_ids_list)
+
     # for each agent
     for  plot_indx, item_id in enumerate (item_ids_list):
 
         #  make a subplot for each
         axes = plt.subplot( num_targs,1,plot_indx+1)
         if plot_indx == floor(num_targs/2):
-            plt.ylabel('%s\n\n%s'%(ylabel,item_id))
+            plt.ylabel('%s\n%s\n'%(ylabel,item_id))
         else:
             plt.ylabel('%s\n'%(item_id))
 
@@ -984,11 +1023,17 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
 
         first_item = False
 
+        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_items:
+            ax = plt.gca()
+            plt.setp(ax.get_xticklabels(), visible=False)
+
     legend_objects = []
     if aoi_plot: 
         legend_objects.append(aoi_plot)
 
-    plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    if include_legend:
+        plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
     plt.xlabel('Time (%s)'%(time_units))
 
@@ -1015,6 +1060,9 @@ def plot_histogram(
 
     #  make a new figure
     plt.figure()
+
+    global_font_size = 16
+    rcParams.update({'font.size': global_font_size})
 
     #  create subplots for satellites
     fig = plt.gcf()
