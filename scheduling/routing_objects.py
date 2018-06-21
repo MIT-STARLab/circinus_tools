@@ -531,7 +531,18 @@ class DataRoute:
 
         return contains
 
+    # def get_end_sat_indx(self):
+    #     """Get the sat_indx at the end of this route - only valid if the route does not end in a downlink"""
+    #     end_wind = self.route[-1]
 
+    #     if type(end_wind) == DlnkWindow:
+    #         raise RuntimeWarning('Should not be checking the end sat indx of a complete data route')
+
+    #     elif type(end_wind) == XlnkWindow:
+    #         return end_wind.get_xlnk_partner(self.window_start_sats[end_wind])
+            
+    #     elif type(end_wind) == ObsWindow:
+    #         return end_wind.sat_indx
 
 class DataMultiRoute:
     """ aggregates multiple DataRoute objects
@@ -807,6 +818,20 @@ class DataMultiRoute:
         for dr in self.data_routes:
             if dr.contains_route(input_dr):
                 return True
+
+    def get_next_planned_wind(self,rt):
+        """For a route rt contained in self, figure out the first """
+
+        if not self.contains_route(rt):
+            raise RuntimeWarning('Attempting to find next planned wind for a non-contained route (self: %s, other rt: %s)'%(self,rt))
+
+        rt_winds = rt.get_winds()
+        # check every wind in self - the first wind that doesn't show up in rt is the next wind planned for rt. Make sure to look through self winds in temporal order
+        for wind in sorted(self.get_winds(),key=lambda w:w.center):
+            if wind in rt_winds:
+                continue
+            else:
+                return wind
 
     
 class LinkInfo:
