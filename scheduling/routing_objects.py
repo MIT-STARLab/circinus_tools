@@ -597,6 +597,9 @@ class DataMultiRoute:
         # return  '(DataMultiRoute %s, routes: %s)'%(self.ID,{dr.ID: self.data_vol_by_dr[dr] for dr in self.data_routes})
         return  '(DataMultiRoute %s: %s)'%(self.ID,self.get_display_string())
 
+    def __contains__(self,wind):
+        return wind in self.get_winds()
+
     def get_display_string(self):
         return 'sched/poss_dv_by_dr: %s'%({'DR - '+dr.get_route_string():'%d/%d'%(dv,self.data_vol_by_dr[dr]) for dr,dv in self.scheduled_dv_by_dr.items()})
 
