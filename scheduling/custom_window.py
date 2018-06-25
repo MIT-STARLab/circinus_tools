@@ -35,10 +35,12 @@ class ObsWindow(ActivityWindow):
         return self.wind_obj_type == 'injected'
 
     def __str__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % ( self.window_ID, self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
+        wind_type = ' inj' if self.injected else ''
+        return  "(ObsWindow id %d %ssat %d dv %f targs %s %s,%s)" % ( self.window_ID, wind_type, self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
     def __repr__(self):
-        return  "(ObsWindow id %d sat %d dv %f targs %s %s,%s)" % (self.window_ID,self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
+        wind_type = ' inj' if self.injected else ''
+        return  "(ObsWindow id %d %ssat %d dv %f targs %s %s,%s)" % (self.window_ID, wind_type, self.sat_indx,  self.data_vol,str(self.target_IDs),tt.date_string(self.start,self.output_date_str_format),tt.date_string(self.end,self.output_date_str_format))
 
 
     def get_codename(self):
