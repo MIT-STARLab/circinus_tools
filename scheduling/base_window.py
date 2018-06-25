@@ -114,6 +114,12 @@ class ActivityWindow(EventWindow):
             self._ave_data_rate_cache =  self.original_data_vol / ( self.original_end - self.original_start).total_seconds ()
         return self._ave_data_rate_cache
 
+    @property
+    def injected(self):
+        """Indicate if this act is injected or not. False by default"""
+        # note: this can be overridden in subclasses
+        return False
+
     def has_gs_indx(self,gs_indx):
         """Check if this window has given ground station index. for general activity windows this is false"""
         return False

@@ -598,10 +598,10 @@ class MetricsCalcs():
         aoi_curves_by_targID = {}
 
         # First we need to seperate downlink time and creation time of all obs taken for this target. Put these into a matrix for convenient sorting.
-        # for each row of dlnk_obs_times_mat[targ_indx]:
+        # for each row of dlnk_obs_times_mat_by_targ_id[targ_indx]:
         # column 1 is downlink time
         # column 2 is observation time
-        dlnk_obs_times_mat = [[] for targ_indx in range(self.num_targ)]
+        dlnk_obs_times_mat_by_targ_id = {}
 
         # start, center, end...whichever we're using for the latency calculation
         time_option = self.latency_calculation_params['dlnk']
@@ -609,17 +609,17 @@ class MetricsCalcs():
 
         for obs_wind,rts in rts_by_obs.items():
 
-            for targ_ID in obs_wind.target_IDs:
+            for targ_id in obs_wind.target_IDs:
 
                 # skip explicitly ignored targets
-                if targ_ID in  self.targ_id_ignore_list:
+                if targ_id in  self.targ_id_ignore_list:
                     continue
 
-                targ_indx = self.all_targ_IDs.index(targ_ID)
+                dlnk_obs_times_mat_by_targ_id.setdefault(targ_id,[])
 
                 if not include_routing:
                     # add row for this observation. Note: there should be no duplicate observations in obs_winds
-                    dlnk_obs_times_mat[targ_indx].append([None,obs_wind.start])
+                    dlnk_obs_times_mat_by_targ_id[targ_id].append([None,obs_wind.start])
 
                 else:
                     #  want to sort these by earliest time so that we favor earlier downlinks
@@ -633,20 +633,18 @@ class MetricsCalcs():
                         #  if we have reached our minimum required data volume amount...
                         if cum_dv >= self.min_obs_dv_dlnk_req - self.min_obs_dv_dlnk_req_slop:
 
-                            dlnk_obs_times_mat[targ_indx].append([getattr(rt.get_dlnk(),time_option), obs_wind.start])
+                            dlnk_obs_times_mat_by_targ_id[targ_id].append([getattr(rt.get_dlnk(),time_option), obs_wind.start])
                             #  break because we shouldn't count additional down links from the same observation ( they aren't delivering updated information)
                             break
 
         if len(rts_by_obs.keys()) > 0:
-            for targ_indx in range(self.num_targ):
-
-                targ_ID = self.all_targ_IDs[targ_indx]
+            for targ_id in dlnk_obs_times_mat_by_targ_id.keys():
 
                 # skip explicitly ignored targets
-                if targ_ID in  self.targ_id_ignore_list:
+                if targ_id in  self.targ_id_ignore_list:
                     continue
 
-                dlnk_obs_times_mat_targ = dlnk_obs_times_mat[targ_indx]
+                dlnk_obs_times_mat_targ = dlnk_obs_times_mat_by_targ_id[targ_id]
 
                 if not include_routing:
                     dlnk_obs_times_mat_targ.sort(key=lambda row: row[1])  # sort by creation time
@@ -658,8 +656,8 @@ class MetricsCalcs():
 
                     av_aoi,aoi_curve = self.get_av_aoi_routing(dlnk_obs_times_mat_targ,  self.met_obs_start_dt,self.met_obs_end_dt,self.dlnk_same_time_slop_s,aoi_units=self.aoi_units,aoi_x_axis_units=aoi_x_axis_units)
                 
-                av_aoi_by_targID[targ_ID] = av_aoi
-                aoi_curves_by_targID[targ_ID] = aoi_curve
+                av_aoi_by_targID[targ_id] = av_aoi
+                aoi_curves_by_targID[targ_id] = aoi_curve
 
         return av_aoi_by_targID,aoi_curves_by_targID
 
