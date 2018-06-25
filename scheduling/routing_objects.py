@@ -259,7 +259,8 @@ class DataRoute:
             if type (wind)  == ObsWindow:
                 start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  tt.date_string(wind.start,self.output_date_str_format)
                 end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  tt.date_string(wind.end,self.output_date_str_format)
-                out_string  +=  "o %d s%d dv %.0f %s,%s" % (wind.window_ID,wind.sat_indx, wind.data_vol,start_str,end_str)
+                wind_type = ' inj' if wind.injected else ''
+                out_string  +=  "o%s %d s%d dv %.0f %s,%s" % (wind_type,wind.window_ID,wind.sat_indx, wind.data_vol,start_str,end_str)
             elif type (wind)  == XlnkWindow:
                 start_str =  "%.0fs" % ( wind.start-time_base).total_seconds() if  time_base else  tt.date_string(wind.start,self.output_date_str_format)
                 end_str =  "%.0fs" % ( wind.end-time_base).total_seconds() if  time_base else  tt.date_string(wind.end,self.output_date_str_format)
