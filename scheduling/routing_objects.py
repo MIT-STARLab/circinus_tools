@@ -10,6 +10,8 @@ from circinus_tools  import  time_tools as tt
 from .custom_window import   ObsWindow,  DlnkWindow, XlnkWindow
 from collections import namedtuple
 
+class RouteActOverlapError(RuntimeError):
+    pass
 
 SatStorageInterval = namedtuple('SatStorageInterval','sat_indx start end')
 
@@ -359,12 +361,12 @@ class DataRoute:
                 last_time = wind.center
 
         for wind1,wind2 in zip(self.route[0:-1],self.route[1:]):
-             trans_time_s = act_timing_helper.get_transition_time_req(wind1,wind2,self.window_start_sats[wind2],self.window_start_sats[wind2])
+            trans_time_s = act_timing_helper.get_transition_time_req(wind1,wind2,self.window_start_sats[wind2],self.window_start_sats[wind2])
 
-             sufficient_time = wind2.center - wind1.center >= timedelta(seconds=trans_time_s)
+            sufficient_time = wind2.center - wind1.center >= timedelta(seconds=trans_time_s)
 
-             if not sufficient_time:
-                 raise RuntimeWarning(' found insufficient transition time between two windows in route; wind1: %s, wind2: %s, transition time required: %fs'%(wind1,wind2,trans_time_s))
+            if not sufficient_time:
+                raise RouteActOverlapError('found insufficient transition time between two windows in route; wind1: %s, wind2: %s, transition time required: %fs'%(wind1,wind2,trans_time_s))
 
     @staticmethod
     def determine_window_start_sats(wind_list):
