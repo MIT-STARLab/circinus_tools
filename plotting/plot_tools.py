@@ -1049,6 +1049,7 @@ def plot_histogram(
         data,
         num_bins,
         plot_type = 'histogram',
+        x_range = None,
         x_title='',
         y_title='',
         plot_title = 'Hist-o-gram, man!', 
@@ -1071,9 +1072,9 @@ def plot_histogram(
     plt.title( plot_title)
 
     if plot_type == 'histogram':
-        plt.hist(data, bins=num_bins)
+        plt.hist(data, bins=num_bins,range=x_range)
     elif plot_type == 'cdf':
-        plt.hist(data, bins=num_bins,normed=True,cumulative=True, histtype='step')
+        plt.hist(data, bins=num_bins,normed=True,cumulative=True, histtype='step',range=x_range)
     else:
         raise NotImplementedError
 
