@@ -337,7 +337,7 @@ class DataRoute:
 
             if not time_valid:
                 string ='routing_objects.py: Found a bad start time at window indx %d in route. Route string: %s'%( windex, self.get_route_string())
-                raise RuntimeWarning( string)
+                raise RouteActOverlapError( string)
 
             #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
             if not self.data_vol <= wind.data_vol + dv_epsilon:
@@ -366,7 +366,7 @@ class DataRoute:
             sufficient_time = wind2.center - wind1.center >= timedelta(seconds=trans_time_s)
 
             if not sufficient_time:
-                raise RouteActOverlapError('found insufficient transition time between two windows in route; wind1: %s, wind2: %s, transition time required: %fs'%(wind1,wind2,trans_time_s))
+                raise RuntimeWarning('found insufficient transition time between two windows in route; wind1: %s, wind2: %s, transition time required: %fs'%(wind1,wind2,trans_time_s))
 
     @staticmethod
     def determine_window_start_sats(wind_list):
