@@ -8,6 +8,8 @@
 import time
 from datetime import datetime, timedelta
 import numpy as np
+from scipy.stats import iqr
+
 
 from circinus_tools  import io_tools
 
@@ -327,15 +329,23 @@ class MetricsCalcs():
 
         # debug_tools.debug_breakpt()
 
+        # note: don't use mean/std. they're not super useful metrics, statistically speaking
         #  note that if center times are not used  with both the observation and downlink for calculating latency, then the route selection and executed the numbers might differ. this is because the executed numbers reflect the updated start and end time for the Windows
-        stats['ave_obs_initial_lat_poss'] = np.mean(i_lats_poss) if i_valid_poss else None
-        stats['std_obs_initial_lat_poss'] = np.std(i_lats_poss) if i_valid_poss else None
+        # stats['ave_obs_initial_lat_poss'] = np.mean(i_lats_poss) if i_valid_poss else None
+        # stats['std_obs_initial_lat_poss'] = np.std(i_lats_poss) if i_valid_poss else None
         stats['min_obs_initial_lat_poss'] = np.min(i_lats_poss) if i_valid_poss else None
+        stats['prcntl25_obs_initial_lat_poss'] = np.percentile(i_lats_poss,25) if i_valid_poss else None
+        stats['median_obs_initial_lat_poss'] = np.median(i_lats_poss) if i_valid_poss else None
+        stats['prcntl75_obs_initial_lat_poss'] = np.percentile(i_lats_poss,75) if i_valid_poss else None
         stats['max_obs_initial_lat_poss'] = np.max(i_lats_poss) if i_valid_poss else None
-        stats['ave_obs_initial_lat_exec'] = np.mean(i_lats_exec) if i_valid_exec else None
-        stats['std_obs_initial_lat_exec'] = np.std(i_lats_exec) if i_valid_exec else None
+        # stats['ave_obs_initial_lat_exec'] = np.mean(i_lats_exec) if i_valid_exec else None
+        # stats['std_obs_initial_lat_exec'] = np.std(i_lats_exec) if i_valid_exec else None
         stats['min_obs_initial_lat_exec'] = np.min(i_lats_exec) if i_valid_exec else None
+        stats['prcntl25_obs_initial_lat_exec'] = np.percentile(i_lats_exec,25) if i_valid_exec else None
+        stats['median_obs_initial_lat_exec'] = np.median(i_lats_exec) if i_valid_exec else None
+        stats['prcntl75_obs_initial_lat_exec'] = np.percentile(i_lats_exec,75) if i_valid_exec else None
         stats['max_obs_initial_lat_exec'] = np.max(i_lats_exec) if i_valid_exec else None
+
         stats['ave_obs_final_lat_exec'] = np.mean(f_lats_exec) if f_valid_exec else None
         stats['min_obs_final_lat_exec'] = np.min(f_lats_exec) if f_valid_exec else None
         stats['max_obs_final_lat_exec'] = np.max(f_lats_exec) if f_valid_exec else None
@@ -357,16 +367,24 @@ class MetricsCalcs():
                 print('no scheduled routes found')
 
             if i_valid_poss:
-                print("%s: \t\t %f"%('ave_obs_initial_lat_poss',stats['ave_obs_initial_lat_poss']))
-                print("%s: \t\t %f"%('std_obs_initial_lat_poss',stats['std_obs_initial_lat_poss']))
+                # print("%s: \t\t %f"%('ave_obs_initial_lat_poss',stats['ave_obs_initial_lat_poss']))
+                # print("%s: \t\t %f"%('std_obs_initial_lat_poss',stats['std_obs_initial_lat_poss']))
                 print("%s: %f"%('min_obs_initial_lat_poss',stats['min_obs_initial_lat_poss']))
+                print("%s: %f"%('prcntl25_obs_initial_lat_poss',stats['prcntl25_obs_initial_lat_poss']))
+                print("%s: \t\t %f"%('median_obs_initial_lat_poss',stats['median_obs_initial_lat_poss']))
+                print("%s: %f"%('prcntl75_obs_initial_lat_poss',stats['prcntl75_obs_initial_lat_poss']))
                 print("%s: %f"%('max_obs_initial_lat_poss',stats['max_obs_initial_lat_poss']))
 
             if i_valid_exec:
-                print("%s: \t\t %f"%('ave_obs_initial_lat_exec',stats['ave_obs_initial_lat_exec']))
-                print("%s: \t\t %f"%('std_obs_initial_lat_exec',stats['std_obs_initial_lat_exec']))
+                # print("%s: \t\t %f"%('ave_obs_initial_lat_exec',stats['ave_obs_initial_lat_exec']))
+                # print("%s: \t\t %f"%('std_obs_initial_lat_exec',stats['std_obs_initial_lat_exec']))
                 print("%s: %f"%('min_obs_initial_lat_exec',stats['min_obs_initial_lat_exec']))
+                print("%s: %f"%('prcntl25_obs_initial_lat_exec',stats['prcntl25_obs_initial_lat_exec']))
+                print("%s: \t\t %f"%('median_obs_initial_lat_exec',stats['median_obs_initial_lat_exec']))
+                print("%s: %f"%('prcntl75_obs_initial_lat_exec',stats['prcntl75_obs_initial_lat_exec']))
                 print("%s: %f"%('max_obs_initial_lat_exec',stats['max_obs_initial_lat_exec']))
+                # todo: might should update median calcs for final lat as well
+                print("Note: should update final latency to median and prcntls as well")
                 print("%s: %f"%('ave_obs_final_lat_exec',stats['ave_obs_final_lat_exec']))
                 print("%s: %f"%('min_obs_final_lat_exec',stats['min_obs_final_lat_exec']))
                 print("%s: %f"%('max_obs_final_lat_exec',stats['max_obs_final_lat_exec']))
@@ -686,13 +704,22 @@ class MetricsCalcs():
         stats =  {}
         av_aoi_vals_poss = [av_aoi for targID,av_aoi in av_aoi_by_targID_poss.items() if targID in poss_targIDs_found]
         av_aoi_vals_exec = [av_aoi for targID,av_aoi in av_aoi_by_targID_exec.items() if targID in exec_targIDs_found]
-        stats['av_av_aoi_poss'] = np.mean(av_aoi_vals_poss) if valid_poss else None
-        stats['av_av_aoi_exec'] = np.mean(av_aoi_vals_exec) if valid_exec else None
-        stats['std_av_aoi_poss'] = np.std(av_aoi_vals_poss) if valid_poss else None
-        stats['std_av_aoi_exec'] = np.std(av_aoi_vals_exec) if valid_exec else None
+        # stats['av_av_aoi_poss'] = np.mean(av_aoi_vals_poss) if valid_poss else None
+        # stats['av_av_aoi_exec'] = np.mean(av_aoi_vals_exec) if valid_exec else None
+        # stats['std_av_aoi_poss'] = np.std(av_aoi_vals_poss) if valid_poss else None
+        # stats['std_av_aoi_exec'] = np.std(av_aoi_vals_exec) if valid_exec else None
+
+
         stats['min_av_aoi_poss'] = np.min(av_aoi_vals_poss) if valid_poss else None
-        stats['min_av_aoi_exec'] = np.min(av_aoi_vals_exec) if valid_exec else None
+        stats['prcntl25_av_aoi_poss'] = np.percentile(av_aoi_vals_poss,25) if valid_poss else None
+        stats['median_av_aoi_poss'] = np.median(av_aoi_vals_poss) if valid_poss else None
+        stats['prcntl75_av_aoi_poss'] = np.percentile(av_aoi_vals_poss,75) if valid_poss else None
         stats['max_av_aoi_poss'] = np.max(av_aoi_vals_poss) if valid_poss else None
+        
+        stats['min_av_aoi_exec'] = np.min(av_aoi_vals_exec) if valid_exec else None
+        stats['prcntl25_av_aoi_exec'] = np.percentile(av_aoi_vals_exec,25) if valid_exec else None
+        stats['median_av_aoi_exec'] = np.median(av_aoi_vals_exec) if valid_exec else None
+        stats['prcntl75_av_aoi_exec'] = np.percentile(av_aoi_vals_exec,75) if valid_exec else None
         stats['max_av_aoi_exec'] = np.max(av_aoi_vals_exec) if valid_exec else None
 
         stats['poss_targIDs_found'] = poss_targIDs_found
@@ -716,15 +743,21 @@ class MetricsCalcs():
 
             if valid_poss:
                 print('num rs targ IDs: %d'%(len(poss_targIDs_found)))
-                print("%s: \t\t %f"%('av_av_aoi_poss',stats['av_av_aoi_poss']))
-                print("%s: %f"%('std_av_aoi_poss',stats['std_av_aoi_poss']))
+                # print("%s: \t\t %f"%('av_av_aoi_poss',stats['av_av_aoi_poss']))
+                # print("%s: %f"%('std_av_aoi_poss',stats['std_av_aoi_poss']))
                 print("%s: %f"%('min_av_aoi_poss',stats['min_av_aoi_poss']))
+                print("%s: %f"%('prcntl25_av_aoi_poss',stats['prcntl25_av_aoi_poss']))
+                print("%s: \t\t\t %f"%('median_av_aoi_poss',stats['median_av_aoi_poss']))
+                print("%s: %f"%('prcntl75_av_aoi_poss',stats['prcntl75_av_aoi_poss']))
                 print("%s: %f"%('max_av_aoi_poss',stats['max_av_aoi_poss']))
             if valid_exec:
                 print('num as targ IDs: %d'%(len(exec_targIDs_found)))
-                print("%s: \t\t %f"%('av_av_aoi_exec',stats['av_av_aoi_exec']))
-                print("%s: %f"%('std_av_aoi_exec',stats['std_av_aoi_exec']))
+                # print("%s: \t\t %f"%('av_av_aoi_exec',stats['av_av_aoi_exec']))
+                # print("%s: %f"%('std_av_aoi_exec',stats['std_av_aoi_exec']))
                 print("%s: %f"%('min_av_aoi_exec',stats['min_av_aoi_exec']))
+                print("%s: %f"%('prcntl25_av_aoi_exec',stats['prcntl25_av_aoi_exec']))
+                print("%s: \t\t\t %f"%('median_av_aoi_exec',stats['median_av_aoi_exec']))
+                print("%s: %f"%('prcntl75_av_aoi_exec',stats['prcntl75_av_aoi_exec']))
                 print("%s: %f"%('max_av_aoi_exec',stats['max_av_aoi_exec']))
 
             # for targ_ID in av_aoi_by_targID.keys ():
@@ -774,10 +807,13 @@ class MetricsCalcs():
         valid = len(av_aoi_vals) > 0
 
         stats =  {}
-        stats['av_av_aoi'] = np.mean(av_aoi_vals) if valid else None
+        # stats['av_av_aoi'] = np.mean(av_aoi_vals) if valid else None
+        # stats['std_av_aoi'] = np.std(av_aoi_vals) if valid else None
         stats['min_av_aoi'] = np.min(av_aoi_vals) if valid else None
+        stats['prcntl25_av_aoi'] = np.percentile(av_aoi_vals,25) if valid else None
+        stats['median_av_aoi'] = np.median(av_aoi_vals) if valid else None
+        stats['prcntl75_av_aoi'] = np.percentile(av_aoi_vals,75) if valid else None
         stats['max_av_aoi'] = np.max(av_aoi_vals) if valid else None
-        stats['std_av_aoi'] = np.std(av_aoi_vals) if valid else None
 
         stats['av_aoi_by_sat_indx'] = av_aoi_by_sat_indx
         stats['aoi_curves_by_sat_indx'] = aoi_curves_by_sat_indx
@@ -787,10 +823,13 @@ class MetricsCalcs():
                 print('Sat TLM AoI values')
             elif ttc_option == 'cmd':
                 print('Sat CMD AoI values')
-            print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
+            # print("%s: \t\t\t\t %f"%('av_av_aoi',stats['av_av_aoi']))
+            # print("%s: %f"%('std_av_aoi',stats['std_av_aoi']))
             print("%s: %f"%('min_av_aoi',stats['min_av_aoi']))
+            print("%s: %f"%('prcntl25_av_aoi',stats['prcntl25_av_aoi']))
+            print("%s: \t\t\t\t %f"%('median_av_aoi',stats['median_av_aoi']))
+            print("%s: %f"%('prcntl75_av_aoi',stats['prcntl75_av_aoi']))
             print("%s: %f"%('max_av_aoi',stats['max_av_aoi']))
-            print("%s: %f"%('std_av_aoi',stats['std_av_aoi']))
 
             # for sat_indx in range(self.num_sats):
             #     avaoi = av_aoi_by_sat_indx.get(sat_indx,None)
@@ -837,15 +876,19 @@ class MetricsCalcs():
         valid = len(ave_e_margin) > 0
 
         stats =  {}
-        stats['av_ave_e_margin'] = np.mean(ave_e_margin) if valid else None
-        stats['av_ave_e_margin_prcnt'] = np.mean(ave_e_margin_prcnt) if valid else None
+        # stats['av_ave_e_margin'] = np.mean(ave_e_margin) if valid else None
         stats['min_ave_e_margin'] = np.min(ave_e_margin) if valid else None
-        stats['min_ave_e_margin_prcnt'] = np.min(ave_e_margin_prcnt) if valid else None
         stats['max_ave_e_margin'] = np.max(ave_e_margin) if valid else None
-        stats['max_ave_e_margin_prcnt'] = np.max(ave_e_margin_prcnt) if valid else None
         stats['std_ave_e_margin'] = np.std(ave_e_margin) if valid else None
-        stats['std_ave_e_margin_prcnt'] = np.std(ave_e_margin_prcnt) if valid else None
         stats['min_min_e_margin'] = np.min(min_e_margin) if valid else None
+
+        # stats['av_ave_e_margin_prcnt'] = np.mean(ave_e_margin_prcnt) if valid else None
+        # stats['std_ave_e_margin_prcnt'] = np.std(ave_e_margin_prcnt) if valid else None
+        stats['min_ave_e_margin_prcnt'] = np.min(ave_e_margin_prcnt) if valid else None
+        stats['prcntl25_ave_e_margin_prcnt'] = np.percentile(ave_e_margin_prcnt,25) if valid else None
+        stats['median_ave_e_margin_prcnt'] = np.median(ave_e_margin_prcnt) if valid else None
+        stats['prcntl75_ave_e_margin_prcnt'] = np.percentile(ave_e_margin_prcnt,75) if valid else None
+        stats['max_ave_e_margin_prcnt'] = np.max(ave_e_margin_prcnt) if valid else None
         stats['min_min_e_margin_prcnt'] = np.min(min_e_margin_prcnt) if valid else None
 
 
@@ -856,15 +899,11 @@ class MetricsCalcs():
                 print('no routes found, no valid statistics to display')
                 return stats
 
-            # print("%s: %f"%('av_ave_e_margin',stats['av_ave_e_margin']))
-            print("%s: %f%%"%('av_ave_e_margin_prcnt',stats['av_ave_e_margin_prcnt']))
-            # print("%s: %f"%('min_ave_e_margin',stats['min_ave_e_margin']))
             print("%s: %f%%"%('min_ave_e_margin_prcnt',stats['min_ave_e_margin_prcnt']))
-            # print("%s: %f"%('max_ave_e_margin',stats['max_ave_e_margin']))
+            print("%s: %f%%"%('prcntl25_ave_e_margin_prcnt',stats['prcntl25_ave_e_margin_prcnt']))
+            print("%s: \t\t %f%%"%('median_ave_e_margin_prcnt',stats['median_ave_e_margin_prcnt']))
+            print("%s: %f%%"%('prcntl75_ave_e_margin_prcnt',stats['prcntl75_ave_e_margin_prcnt']))
             print("%s: %f%%"%('max_ave_e_margin_prcnt',stats['max_ave_e_margin_prcnt']))
-            # print("%s: %f"%('std_ave_e_margin',stats['std_ave_e_margin']))
-            print("%s: %f%%"%('std_ave_e_margin_prcnt',stats['std_ave_e_margin_prcnt']))
-            # print("%s: %f"%('min_min_e_margin',stats['min_min_e_margin']))
             print("%s: %f%%"%('min_min_e_margin_prcnt',stats['min_min_e_margin_prcnt']))
 
             # for sat_indx in range(self.num_sats):
@@ -915,15 +954,19 @@ class MetricsCalcs():
         valid = len(ave_d_margin) > 0
 
         stats =  {}
-        stats['av_ave_d_margin'] = np.mean(ave_d_margin) if valid else None
-        stats['av_ave_d_margin_prcnt'] = np.mean(ave_d_margin_prcnt) if valid else None
+        # stats['av_ave_d_margin'] = np.mean(ave_d_margin) if valid else None
+        # stats['std_ave_d_margin'] = np.std(ave_d_margin) if valid else None
         stats['min_ave_d_margin'] = np.min(ave_d_margin) if valid else None
-        stats['min_ave_d_margin_prcnt'] = np.min(ave_d_margin_prcnt) if valid else None
         stats['max_ave_d_margin'] = np.max(ave_d_margin) if valid else None
-        stats['max_ave_d_margin_prcnt'] = np.max(ave_d_margin_prcnt) if valid else None
-        stats['std_ave_d_margin'] = np.std(ave_d_margin) if valid else None
-        stats['std_ave_d_margin_prcnt'] = np.std(ave_d_margin_prcnt) if valid else None
         stats['min_min_d_margin'] = np.min(min_d_margin) if valid else None
+
+        # stats['av_ave_d_margin_prcnt'] = np.mean(ave_d_margin_prcnt) if valid else None
+        # stats['std_ave_d_margin_prcnt'] = np.std(ave_d_margin_prcnt) if valid else None
+        stats['min_ave_d_margin_prcnt'] = np.min(ave_d_margin_prcnt) if valid else None
+        stats['prcntl25_ave_d_margin_prcnt'] = np.percentile(ave_d_margin_prcnt,25) if valid else None
+        stats['median_ave_d_margin_prcnt'] = np.median(ave_d_margin_prcnt) if valid else None
+        stats['prcntl75_ave_d_margin_prcnt'] = np.percentile(ave_d_margin_prcnt,75) if valid else None
+        stats['max_ave_d_margin_prcnt'] = np.max(ave_d_margin_prcnt) if valid else None
         stats['min_min_d_margin_prcnt'] = np.min(min_d_margin_prcnt) if valid else None
 
 
@@ -934,15 +977,11 @@ class MetricsCalcs():
                 print('no routes found, no valid statistics to display')
                 return stats
 
-            # print("%s: %f"%('av_ave_d_margin',stats['av_ave_d_margin']))
-            print("%s: %f%%"%('av_ave_d_margin_prcnt',stats['av_ave_d_margin_prcnt']))
-            # print("%s: %f"%('min_ave_d_margin',stats['min_ave_d_margin']))
             print("%s: %f%%"%('min_ave_d_margin_prcnt',stats['min_ave_d_margin_prcnt']))
-            # print("%s: %f"%('max_ave_d_margin',stats['max_ave_d_margin']))
+            print("%s: %f%%"%('prcntl25_ave_d_margin_prcnt',stats['prcntl25_ave_d_margin_prcnt']))
+            print("%s: \t\t %f%%"%('median_ave_d_margin_prcnt',stats['median_ave_d_margin_prcnt']))
+            print("%s: %f%%"%('prcntl75_ave_d_margin_prcnt',stats['prcntl75_ave_d_margin_prcnt']))
             print("%s: %f%%"%('max_ave_d_margin_prcnt',stats['max_ave_d_margin_prcnt']))
-            # print("%s: %f"%('std_ave_d_margin',stats['std_ave_d_margin']))
-            print("%s: %f%%"%('std_ave_d_margin_prcnt',stats['std_ave_d_margin_prcnt']))
-            # print("%s: %f"%('min_min_d_margin',stats['min_min_d_margin']))
             print("%s: %f%%"%('min_min_d_margin_prcnt',stats['min_min_d_margin_prcnt']))
 
             # for sat_indx in range(self.num_sats):
