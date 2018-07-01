@@ -1047,12 +1047,14 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
 
 def plot_histogram(
         data,
-        num_bins,
+        num_data_series = 1,
+        num_bins=50,
         plot_type = 'histogram',
         x_range = None,
         x_title='',
         y_title='',
         plot_title = 'Hist-o-gram, man!', 
+        legend_labels = None,
         plot_size_inches = (12,6),
         show=False,
         fig_name='plots/histogram.pdf',
@@ -1071,19 +1073,41 @@ def plot_histogram(
 
     plt.title( plot_title)
 
-    if plot_type == 'histogram':
-        plt.hist(data, bins=num_bins,range=x_range)
-    elif plot_type == 'cdf':
-        plt.hist(data, bins=num_bins,normed=True,cumulative=True, histtype='step',range=x_range)
+    legend_objects = []
+
+    def plot_data(data_series,series_label):
+        if plot_type == 'histogram':
+            out_stuff = plt.hist(data_series, bins=num_bins,range=x_range,label=series_label)
+        elif plot_type == 'cdf':
+            out_stuff = plt.hist(data_series, bins=num_bins,normed=True,cumulative=True, histtype='step',range=x_range,label=series_label)
+            # plot the 100% line
+            plt.plot([x_range[0],x_range[1]],[1.0,1.0], linestyle=':',color='#663300')
+        else:
+            raise NotImplementedError
+
+        # These magic numbers (should) access the patch object that contains the label
+        legend_objects.append(out_stuff[2][0])
+
+    if num_data_series > 1:
+        for i,data_series in enumerate(data):
+            plot_data(data_series,legend_labels[i])
     else:
-        raise NotImplementedError
+        plot_data(data,None)
+        
 
     plt.xlabel(x_title)
     plt.ylabel(y_title)
 
+    # add a legend
+    if legend_labels:
+        plt.legend(handles=legend_objects, loc=4, borderaxespad=0.5)
+
     # use the last axes to set the entire plot background color
     current_axis = plt.gca()
     current_axis.patch.set_facecolor('w')
+
+    #  make all the axis labels in the plot fit within the allowed space
+    plt.tight_layout()
 
     if show:
         plt.show()
