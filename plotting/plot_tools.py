@@ -1050,7 +1050,7 @@ def plot_histogram(
         num_data_series = 1,
         num_bins=50,
         plot_type = 'histogram',
-        x_range = None,
+        plot_x_range = None,
         x_title='',
         y_title='',
         plot_title = 'Hist-o-gram, man!', 
@@ -1077,11 +1077,11 @@ def plot_histogram(
 
     def plot_data(data_series,series_label):
         if plot_type == 'histogram':
-            out_stuff = plt.hist(data_series, bins=num_bins,range=x_range,label=series_label)
+            out_stuff = plt.hist(data_series, bins=num_bins,label=series_label)
         elif plot_type == 'cdf':
-            out_stuff = plt.hist(data_series, bins=num_bins,normed=True,cumulative=True, histtype='step',range=x_range,label=series_label)
+            out_stuff = plt.hist(data_series, bins=num_bins,normed=True,cumulative=True, histtype='step',label=series_label)
             # plot the 100% line
-            plt.plot([x_range[0],x_range[1]],[1.0,1.0], linestyle=':',color='#663300')
+            plt.plot([plot_x_range[0],plot_x_range[1]],[1.0,1.0], linestyle=':',color='#663300')
         else:
             raise NotImplementedError
 
@@ -1097,6 +1097,8 @@ def plot_histogram(
 
     plt.xlabel(x_title)
     plt.ylabel(y_title)
+
+    plt.gca().set_xlim(plot_x_range)
 
     # add a legend
     if legend_labels:
