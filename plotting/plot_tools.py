@@ -228,6 +228,7 @@ def plot_all_agents_acts(
 
     # for each agent
     obs_count = 0
+    axes = None
     for  plot_indx, agent_id in enumerate (agents_ids_list):
         #  get the index for this ID
         agent_indx = agent_id_order.index(str(agent_id))
@@ -542,7 +543,8 @@ def plot_all_agents_acts(
     plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
-    axes.patch.set_facecolor('w')
+    if axes:
+        axes.patch.set_facecolor('w')
 
     if show:
         plt.show()
@@ -688,11 +690,12 @@ def plot_energy_usage(
 
     # for each agent
     first_sat = True
+    axes = None
     for  plot_indx, sat_id in enumerate (sats_ids_list):
         #  get the index for this ID
         sat_indx = sat_id_order.index(str(sat_id))
 
-        #  make a subplot for each
+        #  make a subplot for each    
         axes = plt.subplot( num_sats,1,plot_indx+1)
         if plot_indx == floor(num_sats/2):
             plt.ylabel('Satellite Index,\nenergy storage (Wh)\n\n%d\n'%(sat_indx))
@@ -767,7 +770,8 @@ def plot_energy_usage(
     plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
-    axes.patch.set_facecolor('w')
+    if axes:
+        axes.patch.set_facecolor('w')
 
     if show:
         plt.show()
@@ -840,6 +844,7 @@ def plot_data_usage(
 
     # for each agent
     first_sat = True
+    axes = None
     for  plot_indx, sat_id in enumerate (sats_ids_list):
         #  get the index for this ID
         sat_indx = sat_id_order.index(str(sat_id))
@@ -920,7 +925,8 @@ def plot_data_usage(
     plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
 
     # use the last axes to set the entire plot background color
-    axes.patch.set_facecolor('w')
+    if axes:
+        axes.patch.set_facecolor('w')
 
     if show:
         plt.show()
@@ -986,6 +992,7 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     num_items = len(item_ids_list)
 
     # for each agent
+    axes = None
     for  plot_indx, item_id in enumerate (item_ids_list):
 
         #  make a subplot for each
@@ -1038,7 +1045,8 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     plt.xlabel('Time (%s)'%(time_units))
 
     # use the last axes to set the entire plot background color
-    axes.patch.set_facecolor('w')
+    if axes:
+        axes.patch.set_facecolor('w')
 
     if show:
         plt.show()
