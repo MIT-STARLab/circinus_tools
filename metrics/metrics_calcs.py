@@ -905,6 +905,14 @@ class MetricsCalcs():
             print("%s: %f%%"%('prcntl75_ave_e_margin_prcnt',stats['prcntl75_ave_e_margin_prcnt']))
             print("%s: %f%%"%('max_ave_e_margin_prcnt',stats['max_ave_e_margin_prcnt']))
             print("%s: %f%%"%('min_min_e_margin_prcnt',stats['min_min_e_margin_prcnt']))
+            print("all 6 in a row: %f %f %f %f %f %f"%(
+                stats['min_ave_e_margin_prcnt'],
+                stats['prcntl25_ave_e_margin_prcnt'],
+                stats['median_ave_e_margin_prcnt'],
+                stats['prcntl75_ave_e_margin_prcnt'],
+                stats['max_ave_e_margin_prcnt'],
+                stats['min_min_e_margin_prcnt'])
+            )
 
             # for sat_indx in range(self.num_sats):
             #     print("sat_indx %d: av e margin %f"%(sat_indx,e_margin_by_sat_indx[sat_indx]['ave']))
