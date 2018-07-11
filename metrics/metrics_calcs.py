@@ -383,6 +383,14 @@ class MetricsCalcs():
                 print("%s: \t\t %f"%('median_obs_initial_lat_exec',stats['median_obs_initial_lat_exec']))
                 print("%s: %f"%('prcntl75_obs_initial_lat_exec',stats['prcntl75_obs_initial_lat_exec']))
                 print("%s: %f"%('max_obs_initial_lat_exec',stats['max_obs_initial_lat_exec']))
+                print("all 5 in a row: %f %f %f %f %f"%(
+                    stats['min_obs_initial_lat_exec'],
+                    stats['prcntl25_obs_initial_lat_exec'],
+                    stats['median_obs_initial_lat_exec'],
+                    stats['prcntl75_obs_initial_lat_exec'],
+                    stats['max_obs_initial_lat_exec'])
+                )
+                
                 # todo: might should update median calcs for final lat as well
                 print("Note: should update final latency to median and prcntls as well")
                 print("%s: %f"%('ave_obs_final_lat_exec',stats['ave_obs_final_lat_exec']))
