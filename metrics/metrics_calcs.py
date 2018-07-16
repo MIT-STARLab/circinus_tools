@@ -399,6 +399,45 @@ class MetricsCalcs():
 
         return stats
 
+    def assess_latency_from_timepoint(self,
+        routes, 
+        time_dt, 
+        verbose=False):
+        
+        stats = {}
+
+        # todo: hackidly put center time in here, fix that
+        lats = [(rt.get_dlnk().center-time_dt).total_seconds()/60 for rt in routes]
+
+        lats_valid = len(lats) > 0
+
+        # debug_tools.debug_breakpt()
+
+        # note: don't use mean/std. they're not super useful metrics, statistically speaking
+        #  note that if center times are not used  with both the observation and downlink for calculating latency, then the route selection and executed the numbers might differ. this is because the executed numbers reflect the updated start and end time for the Windows
+        stats['min_rt_lat'] = np.min(lats) if lats_valid else None
+        stats['prcntl25_rt_lat'] = np.percentile(lats,25) if lats_valid else None
+        stats['median_rt_lat'] = np.median(lats) if lats_valid else None
+        stats['prcntl75_rt_lat'] = np.percentile(lats,75) if lats_valid else None
+        stats['max_rt_lat'] = np.max(lats) if lats_valid else None
+
+        if verbose:
+
+            if not lats_valid:
+                print('found no routes')
+                return stats
+
+            else:
+                # print("%s: \t\t %f"%('ave_rt_lat',stats['ave_rt_lat']))
+                # print("%s: \t\t %f"%('std_rt_lat',stats['std_rt_lat']))
+                print("%s: %f"%('min_rt_lat',stats['min_rt_lat']))
+                print("%s: %f"%('prcntl25_rt_lat',stats['prcntl25_rt_lat']))
+                print("%s: \t\t %f"%('median_rt_lat',stats['median_rt_lat']))
+                print("%s: %f"%('prcntl75_rt_lat',stats['prcntl75_rt_lat']))
+                print("%s: %f"%('max_rt_lat',stats['max_rt_lat']))
+
+        return stats
+
     @staticmethod
     def t_conv_func(t_end,t_start,input_type='datetime',output_units='hours'):
         """ converts input time range to a float difference in desired output units """
