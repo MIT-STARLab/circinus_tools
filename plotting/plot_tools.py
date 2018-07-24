@@ -1059,6 +1059,7 @@ def plot_histogram(
         num_bins=50,
         plot_type = 'histogram',
         plot_x_range = None,
+        plot_y_range = None,
         x_title='',
         y_title='',
         plot_title = 'Hist-o-gram, man!', 
@@ -1107,6 +1108,7 @@ def plot_histogram(
     plt.ylabel(y_title)
 
     plt.gca().set_xlim(plot_x_range)
+    plt.gca().set_ylim(plot_y_range)
 
     # add a legend
     if legend_labels:
