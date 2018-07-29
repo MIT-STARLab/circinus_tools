@@ -12,6 +12,8 @@ from scipy.stats import iqr
 
 
 from circinus_tools  import io_tools
+from circinus_tools.scheduling.custom_window import   ObsWindow,  DlnkWindow, XlnkWindow,  EclipseWindow
+
 
 from circinus_tools import debug_tools
 
@@ -1045,3 +1047,81 @@ class MetricsCalcs():
             #     print("sat_indx %d: max d margin %f"%(sat_indx,d_margin_by_sat_indx[sat_indx]['max']))
 
         return stats
+
+    def assess_link_utilization(self, 
+            all_acts, 
+            executed_acts, 
+            all_acts_dv_getter, 
+            exec_acts_dv_getter, 
+            verbose=False):
+
+        executed_acts = set(executed_acts)
+        num_dlnks_exec = 0
+        dv_dlnks_exec = 0
+        num_xlnks_exec = 0
+        dv_xlnks_exec = 0
+
+        
+        all_acts = set(all_acts)
+        num_dlnks_all = 0
+        dv_dlnks_all = 0
+        num_xlnks_all = 0
+        dv_xlnks_all = 0
+
+
+        for act in executed_acts:
+            if type(act) == DlnkWindow:
+                num_dlnks_exec += 1
+                dv_dlnks_exec += exec_acts_dv_getter(act)
+            if type(act) == XlnkWindow:
+                num_xlnks_exec += 1
+                dv_xlnks_exec += exec_acts_dv_getter(act)
+
+
+        for act in all_acts:
+            if type(act) == DlnkWindow:
+                num_dlnks_all += 1
+                dv_dlnks_all += all_acts_dv_getter(act)
+            if type(act) == XlnkWindow:
+                num_xlnks_all += 1
+                dv_xlnks_all += all_acts_dv_getter(act)
+
+        valid_all = len(all_acts) > 0
+        valid_exec = len(executed_acts) > 0
+
+        stats = {}
+        stats['num_dlnks_all'] = num_dlnks_all
+        stats['num_dlnks_exec'] = num_dlnks_exec
+        stats['dv_dlnks_all'] = dv_dlnks_all
+        stats['dv_dlnks_exec'] = dv_dlnks_exec
+        
+        stats['num_xlnks_all'] = num_xlnks_all
+        stats['num_xlnks_exec'] = num_xlnks_exec
+        stats['dv_xlnks_all'] = dv_xlnks_all
+        stats['dv_xlnks_exec'] = dv_xlnks_exec
+
+        if verbose:
+            print('link utilization')
+
+            if not (valid_all or valid_exec):
+                print('no acts found, no valid statistics to display')
+                return stats
+
+            if not valid_all:
+                print('no acts found')
+            if not valid_exec:
+                print('no executed acts found')
+
+            print("%s: %f"%('num_dlnks_all',stats['num_dlnks_all']))
+            print("%s: %f"%('num_dlnks_exec',stats['num_dlnks_exec']))
+            print("%s: %f"%('dv_dlnks_all',stats['dv_dlnks_all']))
+            print("%s: %f"%('dv_dlnks_exec',stats['dv_dlnks_exec']))
+
+            print("%s: %f"%('num_xlnks_all',stats['num_xlnks_all']))
+            print("%s: %f"%('num_xlnks_exec',stats['num_xlnks_exec']))
+            print("%s: %f"%('dv_xlnks_all',stats['dv_xlnks_all']))
+            print("%s: %f"%('dv_xlnks_exec',stats['dv_xlnks_exec']))
+
+        return stats
+
+    
