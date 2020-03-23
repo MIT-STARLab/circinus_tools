@@ -20,7 +20,11 @@ class MatlabIF:
     See here for info about handling data returned from matlab: https://www.mathworks.com/help/matlab/matlab_external/handle-data-returned-from-matlab-to-python.html
     """
 
-    def __init__(self,matlab_ver='MATLAB_R2017a',paths=[],connect=True,use_existing=True,persistent=True):
+    def __init__(self,matlab_ver='NOT_SET',paths=[],connect=True,use_existing=True,persistent=True):
+        if matlab_ver == 'NOT_SET':
+            print("ERROR: MATLAB version not set. After proper installation of matlab-python engine, set default parameter of MatlabIF in circinus_tools/matlab_if/interface.py, to matlab_ver='MATLAB_R2019b', for your particular version.")
+            raise ValueError
+
         self.eng = None
         self.eng_name = None
         self.eng_deleted = False
