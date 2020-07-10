@@ -24,7 +24,7 @@ def parse_sat_ids(sat_ids_spec,sat_id_prefix,force_duplicate = False):
 def duplicate_entry_for_sat_ids(params_entry,force_duplicate = False):
     new_entries = []
 
-    sat_id_prefix = params_entry.get('sat_id_prefix','')
+    sat_id_prefix = params_entry['sat_id_prefix']
     sat_ids = parse_sat_ids(params_entry['sat_ids'],sat_id_prefix,force_duplicate)
 
     for sat_id in sat_ids:
@@ -117,6 +117,105 @@ def unpack_sat_entry_list(entry_list,output_format='list',id_tag = 'sat_id',forc
     else:
         raise NotImplementedError
 
+## expand_planewise_sat_defs
+#
+#  Takes descriptors of a multi-satellite plane, and expands it to the 
+#  default individual definitions. Primarily for ease of case description, 
+#  otherwise should be handled the same once expanded.
+#
+#  In order to use this, the entry for each plane in constellation_config.json > "sat_orbital_elems" should look like:
+#  {
+#     "def_type":"plane",
+#     "orbit_indx"    : 0,
+#     "plane_def": {
+#         "a_km"          : 7378,
+#         "e"             : 0,
+#         "i_deg"         : 97.86,
+#         "RAAN_deg"      : 0,
+#         "arg_per_deg"   : 0
+#     },
+#
+#     "first_M_deg"   : 90,               "_comment1" : "anomaly of first sat, which subsequent will follow",
+#     "spacing_type"  : "progressive",    "_comment2" : "spacing: 'even', or 'progressive', or 'set'; indicate whether the sats in the plane are evenly spaced (val ignored/not needed), or should space progressively by the subsequently provided 'spacing_val', or should fix each to a anomoly in a set (array) to allow arbitrary values ",
+#     "spacing_val"   : 90,               "_comment3" : "for example, this combo would result in 3 sats in this plane, with the first at 90 deg anomaly, followed by 2 more at 180 and 270."
+#
+#     "first_sat_id"  : 0,                "_comment4" : "the comnbo of first_sat_id, and sats_in_plane must not result in conflicting indices, and should be 'in order' without gaps, and in total match 'num_satellites' and 'sat_ids' field above. Sorry for the restrictions for now, will make a validation function.",
+#     "sats_in_plane" : 3,
+#
+#     "propagation_method": "matlab_delkep"
+#  }
+#  More detail: https://github.mit.edu/star-lab/SPRINT/blob/master/inputs/cases/case_config_READMEs/constellation_config.md
+#  Additionally note the requirements for matching top-level fields in 'constellation_params', as described in _comment4
+#  @param sat_orbital_elems   The field of the same name from constellation_config.json
+def expand_planewise_sat_defs(sat_orbital_elems):
+    expanded_elements = []
+
+    # def_type added as a field in every sat_orbital_elems: "indv" is the old type found in zhou; "plane" is the type used here
+    for elems in sat_orbital_elems:
+        if elems['def_type'] == 'indv':
+             expanded_elements.append(elems)
+        elif elems['def_type'] == 'plane':
+            for i in range(elems['first_sat_id'], (elems['first_sat_id']+elems['sats_in_plane'])):
+                # figure anomaly:
+                if   elems['spacing_type'] == 'even':
+                    spacing = 360.0/elems['sats_in_plane']
+                    m_deg = (elems['first_M_deg']+(i-elems['first_sat_id'])*spacing)%360
+                elif elems['spacing_type'] == 'progressive':
+                    m_deg = (elems['first_M_deg']+(i-elems['first_sat_id'])*elems['spacing_val'])%360
+                elif elems['spacing_type'] == 'set':
+                    raise NotImplementedError("Arbitrary set of spacings not yet implemented")
+                else:
+                    raise NotImplementedError("Limited types supported.")
+
+                new_entry = {
+                    "sat_id"    : "S"+str(i),
+                    "def_type"  : "indv",
+                    "kepler_meananom": {
+                        "a_km"          : elems['plane_def']['a_km'],
+                        "e"             : elems['plane_def']['e'],
+                        "i_deg"         : elems['plane_def']['i_deg'],
+                        "RAAN_deg"      : elems['plane_def']['RAAN_deg'],
+                        "arg_per_deg"   : elems['plane_def']['arg_per_deg'],
+                        "M_deg"         : m_deg
+                    },
+                    "propagation_method" : elems['propagation_method']
+                }
+                expanded_elements.append(new_entry)
+        elif elems['def_type'] == 'walker':
+            # don't need to do anything since current orbit prop already handles walker
+            # TODO: bring plane expanding walker function from orbit prop into here
+            expanded_elements = [elems]
+        else:
+            raise NotImplementedError("Other descriptions not defined. If using old wwalker format may need to adjust, or use new plane format accordingly.")
+            
+    return expanded_elements
+
+# Similarly to the above, except for where the sat-orbit lists are used later
+# Shouldn't be combined, as they're used independently.
+# TODO - Consider not using this list mechanism in general (add plane identifiers to sat sim object directly? compute whether in-plane based off elements? don't use in-plane-based numbers, compute slew times directly?)
+def expand_orbits_list(orbit_params, sat_prefix):
+    sat_orbital_elems = orbit_params['sat_orbital_elems']
+    
+    sat_ids_by_orbit = copy.copy(orbit_params['sat_ids_by_orbit_name']) # start with old copy, will override as necessary
+
+    for elems in sat_orbital_elems:
+        if elems['def_type'] == 'indv' or elems['def_type'] == 'walker':
+            continue
+        elif elems['def_type'] == 'plane':
+            o_name = "orbit"+str(elems['orbit_indx'])
+            sat_ids = []
+            for i in range(elems['first_sat_id'], (elems['first_sat_id']+elems['sats_in_plane'])):
+                sat_ids.append(sat_prefix+str(i))
+            sat_ids_by_orbit[o_name] = sat_ids
+        else:
+            raise NotImplementedError("Other descriptions not defined.'indv', 'plane', or 'walker' are defined")
+
+    # TODO - validate uniqueness of ID's, that they only exist in one orbit each, etc.
+
+    return sat_ids_by_orbit 
+
+
+
 
 def sort_input_params_by_sat_IDs(params_list,sat_id_order):
 
@@ -171,7 +270,7 @@ def make_and_validate_sat_id_order(sat_id_order_pre,sat_id_prefix,num_satellites
         raise RuntimeError('Expected a list here')
 
     if len(sat_id_order) != num_satellites:
-        raise Exception ("Number of satellite IDs is not equal to number of satellites specified in input file")
+        raise Exception ("Number of satellite IDs is not equal to number of satellites specified in input file. {} in list vs {} exected".format(len(sat_id_order), num_satellites))
     if len(set(sat_id_order)) != len(sat_id_order):
         raise Exception ("Every satellite ID should be unique") 
 
@@ -225,10 +324,10 @@ def parse_power_consumption_params(p_params):
         if mode_code[0:1] == "_":
             pass
         else:
-            edot_by_mode[mode_code] = p_params['power_consumption_W'][mode_code][p_params[mode_code+'_option']]
+            edot_by_mode[mode_code] = p_params['power_consumption_W'][mode_code]
 
-    batt_storage['e_min'] = p_params['battery_storage_Wh']['e_min'][p_params['battery_option']]
-    batt_storage['e_max'] = p_params['battery_storage_Wh']['e_max'][p_params['battery_option']]
+    batt_storage['e_min'] = p_params['battery_storage_Wh']['e_min']
+    batt_storage['e_max'] = p_params['battery_storage_Wh']['e_max']
 
     power_units = {
         'power_consumption': 'W',

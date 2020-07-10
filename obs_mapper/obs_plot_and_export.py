@@ -194,4 +194,4 @@ if __name__ == '__main__':
         obs_targs = extract_observation_parameters(created_gpnts)
         
         with open('targets_obs_params_output.json','w') as f:
-            json.dump(obs_targs ,f,indent=4)
+            json.dump(obs_targs, f, indent=4, separators=(',', ': '))

@@ -119,9 +119,12 @@ class MetricsCalcs():
         num_poss_obs_dv_not_zero = 0
 
         for obs in poss_rts_by_obs.keys():
-            poss_dvs_by_obs[obs] = min(obs.data_vol,sum (rt_poss_dv_getter(rt) for rt in poss_rts_by_obs[obs]))
+            poss_dvs_by_obs[obs] = min(obs.data_vol, sum(rt_poss_dv_getter(rt) for rt in poss_rts_by_obs[obs]) )
             if poss_dvs_by_obs[obs] > 0:
                 num_poss_obs_dv_not_zero += 1
+            else:
+                # remove key from dictionary (causes divide by zero error later)
+                poss_dvs_by_obs.pop(obs)
 
         for obs in exec_rts_by_obs.keys():
             exec_dvs_by_obs[obs] = sum (rt_exec_dv_getter(rt) for rt in exec_rts_by_obs[obs])
@@ -130,10 +133,19 @@ class MetricsCalcs():
 
         poss_dvs = [dv for dv in poss_dvs_by_obs. values ()]
         exec_dvs = [dv for dv in exec_dvs_by_obs. values ()]
+
+        running_perf_total = 0
+        for obs in poss_dvs_by_obs.keys():
+            running_perf_total += ( exec_dvs_by_obs.get(obs,0) / poss_dvs_by_obs[obs] )  # executed (def 0 if not listed) / poss
+        if len(poss_dvs_by_obs.keys()) > 0:
+            average_obvs_throughput = running_perf_total / (len(poss_dvs_by_obs.keys()))
+        else:
+            average_obvs_throughput = 0
         
         valid_poss = len(poss_dvs) > 0
         valid_exec = len(exec_dvs) > 0
 
+        stats['average_obvs_throughput'] = average_obvs_throughput  # New, testing
         stats['num_obs_poss'] = len(poss_dvs)
         stats['num_obs_poss_nonzero_dv'] = num_poss_obs_dv_not_zero
         stats['num_obs_exec'] = num_exec_obs
@@ -1112,13 +1124,13 @@ class MetricsCalcs():
             if not valid_exec:
                 print('no executed acts found')
 
-            print("%s: %f"%('num_dlnks_all',stats['num_dlnks_all']))
-            print("%s: %f"%('num_dlnks_exec',stats['num_dlnks_exec']))
+            print("%s: %d"%('num_dlnks_all',stats['num_dlnks_all']))
+            print("%s: %d"%('num_dlnks_exec',stats['num_dlnks_exec']))
             print("%s: %f"%('dv_dlnks_all',stats['dv_dlnks_all']))
             print("%s: %f"%('dv_dlnks_exec',stats['dv_dlnks_exec']))
 
-            print("%s: %f"%('num_xlnks_all',stats['num_xlnks_all']))
-            print("%s: %f"%('num_xlnks_exec',stats['num_xlnks_exec']))
+            print("%s: %d"%('num_xlnks_all',stats['num_xlnks_all']))
+            print("%s: %d"%('num_xlnks_exec',stats['num_xlnks_exec']))
             print("%s: %f"%('dv_xlnks_all',stats['dv_xlnks_all']))
             print("%s: %f"%('dv_xlnks_exec',stats['dv_xlnks_exec']))
 

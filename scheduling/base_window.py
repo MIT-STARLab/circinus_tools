@@ -27,6 +27,8 @@ class EventWindow():
 
         self.output_date_str_format = 'short'
 
+        self.modified_by_LP = False # used when the LP modifies a window
+
     # See:
     # https://docs.python.org/3.4/reference/datamodel.html#object.__hash__
     # https://stackoverflow.com/questions/29435556/how-to-combine-hash-codes-in-in-python3
@@ -88,7 +90,7 @@ class ActivityWindow(EventWindow):
 
         super().__init__(start, end, window_ID,wind_obj_type)
 
-    def modify_time(self,new_dt,time_opt):
+    def modify_time(self,new_dt,time_opt = 'start',new_end_dt = None):
         if time_opt == 'start':
             #  populate the average data rate cache
             ave_data_rate = self.ave_data_rate
@@ -103,6 +105,22 @@ class ActivityWindow(EventWindow):
 
             # assuming linear reduction in data volume
             self.data_vol = ave_data_rate * (self.end-self.start).total_seconds()
+
+        elif time_opt == 'custom':
+            # DECREPATED -- ADDED FOR SCHEDULE DISRUPTION PLANNER, which does not necessarily plan symmetrically around the center for new 
+            #  populate the average data rate cache
+            ave_data_rate = self.ave_data_rate
+            self.timing_updated = True
+
+            
+            self.start = new_dt
+            self.end = new_end_dt
+
+            # need to clear center cache so it can be updated next time center is requested
+            self._center_cache = None
+            # assuming linear reduction in data volume
+            self.data_vol = ave_data_rate * (self.end-self.start).total_seconds()
+
 
         else:
             raise NotImplementedError

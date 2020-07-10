@@ -43,6 +43,10 @@ def short_date_string(dt):
 
 def date_string(dt,format_opt='iso'):
     if format_opt == 'iso':
-        return dt.isoformat()
+        time_s = dt.isoformat()
+        time_s = time_s.replace('+00:00', 'Z')
+        time_s = time_s if time_s[-1] == 'Z' else time_s+'Z'
+
+        return time_s
     if format_opt == 'short':
         return  short_date_string(dt)

@@ -342,6 +342,9 @@ class DataRoute:
             #  note the assumption here that every data route's data volume will be less than or equal to the data volume of the observation, all of the cross-links, and the downlink
             if not self.data_vol <= wind.data_vol + dv_epsilon:
                 string ='routing_objects.py: Found bad dv at window indx %d in route. Allowable dv: %f. Route string: %s'%( windex, obs.data_vol*self.obs_dv_multiplier,str(self))
+                print('The following route has too much data volume through it for the window, modified by LP = %s' %wind.modified_by_LP )
+                print("Window: %s" %str(wind))
+                print("Route %s" % str(self))
                 raise RuntimeWarning( string)
 
             #  note that we manually trace the satellite index through cross-link window here. This is a bit redundant with the functionality of window_start_sats,  but adds a little bit more of a warm, happy, comfortable feeling in the area checking

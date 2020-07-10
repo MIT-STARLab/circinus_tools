@@ -103,6 +103,85 @@ def get_end(wind):
 def get_end_original(wind):
     return wind.original_end
 
+# for plotting failure label
+def plot_failure_label(
+    current_axis,
+    sat_failures_dict,
+    sat_indx,
+    sat_plot_params,
+    already_plotted_list,
+    base_time_dt):
+
+    fill = True
+    color = sat_plot_params['plot_color']
+    viz_object_rotator_hist = sat_plot_params['viz_object_rotator_hist']
+    viz_object_rotator = 0 # this is in case we want to add a visual marker for a failure (like a black bar)
+    label_rotator = 0
+    label_rotator_hist = sat_plot_params['label_rotator_hist']
+    bottom_base_vert_loc = sat_plot_params['label_vert_bottom_base_offset']
+    failed_acts_list = []
+    for fail_type in sat_failures_dict.keys():
+        failed_acts = list(sat_failures_dict[fail_type])
+        # append fail type to each failed act (for use in label_geter)
+        for failed_act in failed_acts:
+            if isinstance(failed_act,ObsWindow):
+                act_type = 'obs'
+            elif isinstance(failed_act,DlnkWindow):
+                act_type = 'dlnk'
+            elif isinstance(failed_act,XlnkWindow):
+                
+                if failed_act.window_ID in already_plotted_list:
+                    continue
+                else:
+                    act_type = 'R-xlnk' if sat_indx == failed_act.xsat_indx else 'T-xlnk'
+                    already_plotted_list.append(failed_act.window_ID)
+            else:
+                act_type = 'unk'
+
+            # need to order all failures by end time so the label roll-over makes sense
+            failed_acts_list.append((act_type,failed_act,fail_type))
+
+    failed_acts_list.sort(key=lambda x:x[1].end)
+    for failed_act_tuple in failed_acts_list:
+        act_type = failed_act_tuple[0]
+        failed_act = failed_act_tuple[1]
+        fail_type = failed_act_tuple[2]
+        if hasattr(failed_act,'executed_data_vol'): 
+            # only executed activities have this
+            try:
+                label_text = "%s,dv %.0f%%,F:%s"%(act_type,100*failed_act.executed_data_vol/failed_act.scheduled_data_vol,fail_type)
+            except ZeroDivisionError:
+                label_text = "%s,dv %.0f%%,F:%s"%(act_type,0,fail_type)
+        else:
+            label_text = "%s,dv %d Mb,F:%s"%(act_type,failed_act.scheduled_data_vol,fail_type)
+        # This vertically rotates the location of the visualization object on the plot (e.g. the rectangle drawn for an activity)
+        #  update the rotator value if we've already added this window to the plot in the "choices" code above
+
+        act_start = (get_start(failed_act)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+        act_end = (get_end(failed_act)-base_time_dt).total_seconds()/sat_plot_params['time_divisor']
+        #  figure out label location
+        #   put label in desired vertical spot
+        left_horizontal_loc = act_start + sat_plot_params['label_horz_offset']/sat_plot_params['label_horz_divisor']
+
+        bottom_vert_loc= bottom_base_vert_loc + sat_plot_params['label_vert_bottom_base_offset'] + label_rotator * sat_plot_params['label_vert_spacing']
+        #  add label
+        plt.text(left_horizontal_loc, bottom_vert_loc, label_text , fontsize=sat_plot_params['label_fontsize'], fontweight=sat_plot_params['label_fontweight'],color = 'k')
+
+        #  update label rotator
+        label_rotator = (label_rotator+1)% sat_plot_params['label_rotation_rollover']
+        label_rotator_hist.setdefault(failed_act,label_rotator)
+
+        # plot the task duration
+        viz_object = Rectangle((act_start, bottom_base_vert_loc), act_end-act_start,bottom_base_vert_loc+10,alpha=0.5,fill=fill,color=color)
+        current_axis.add_patch(viz_object)
+        #viz_objects.append(viz_object) 
+
+        #  update viz object rotator
+        viz_object_rotator_hist.setdefault(failed_act,viz_object_rotator)
+        viz_object_rotator = (viz_object_rotator+1)% sat_plot_params['viz_object_rotation_rollover']
+
+    return already_plotted_list
+
 def plot_all_agents_acts(
     agents_ids_list,
     agents_obs_winds_choices,
@@ -175,6 +254,16 @@ def plot_all_agents_acts(
     label_horz_offset = plot_params.get('label_horz_offset',-0.3)
     label_fontweight = plot_params.get('label_fontweight','normal')
 
+    # plotting failed activities
+    all_acts_failed = plot_params.get('failed_acts',{
+        "dlnks": [],
+        "xlnks": [],
+        "obs": []
+    }) 
+
+    obs_fail_legend_name = plot_params.get('obs_failed_legend_name',"O failed.")
+    dlnk_fail_legend_name = plot_params.get('dlnk_failed_legend_name',"D failed.")
+    xlnk_fail_legend_name = plot_params.get('xlnk_failed_legend_name',"X failed.")
 
     if time_units == 'hours':
         time_divisor = 3600.0
@@ -217,10 +306,13 @@ def plot_all_agents_acts(
     #  these hold the very last plot object of a given type added. Used for legend below
     d_w_obj = None
     d_obj = None
+    d_fail_obj = None
     x_w_obj = None
     x_obj = None
+    x_fail_obj = None
     o_w_obj = None
     o_obj = None
+    o_fail_obj = None
 
     first_agent = True
 
@@ -244,9 +336,9 @@ def plot_all_agents_acts(
         plt.tick_params(
             axis='y',
             which='both',
-            left='off',
-            right='off',
-            labelleft='off'
+            left=False,
+            right=False,
+            labelleft=False
         )
 
         # set axis length.
@@ -506,6 +598,108 @@ def plot_all_agents_acts(
 
             obs_count += 1
 
+        ###################################
+        # plot windows executed, but failed
+        ###################################
+        def color_getter(dlnk):
+            return "#000000" # failed activities have a black outline
+        # plot the failed xlnks
+        if plot_xlnks and all_acts_failed['xlnks']:
+            agent_failed_xlnks = [act for act in agents_xlnk_winds[agent_indx] if act in all_acts_failed['xlnks'][agent_indx]]
+            agent_plot_params = {
+                "plot_start_dt": plot_start_dt,
+                "plot_end_dt": plot_end_dt,
+                "plot_color": None,
+                "include_labels": False,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
+                "base_time_dt": base_time_dt,
+                "time_divisor": time_divisor,
+                "viz_object_vert_bottom_base_offset": 0,
+                "viz_object_rotator_hist": xlnk_rectangle_rotator_hist,
+                "viz_object_rotation_rollover": 2,
+                "label_horz_offset": label_horz_offset,
+                "label_vert_bottom_base_offset": 0.605,
+                "label_vert_spacing": 0.1,
+                "label_rotator_hist": xlnk_label_rotator_hist,
+                "label_rotation_rollover": xlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": xlnk_hatch_pattern if use_hatch_windows_executed else None
+            }
+
+            label_getter = xlnk_label_getter if xlnk_label_getter else label_getter
+            # supply the function with the agent index (freezes the current agent indx as an argument)
+            label_getter_agent = partial(label_getter, sat_indx=agent_indx)
+
+            # debug_tools.debug_breakpt()
+
+            xlnk_failed_viz_objects = plot_window_schedule(current_axis,agent_failed_xlnks,start_getter_reg,end_getter_reg,agent_plot_params,label_getter_agent,color_getter)
+            if len(xlnk_failed_viz_objects) > 0:
+                x_fail_obj = xlnk_failed_viz_objects[-1]
+
+
+        if plot_dlnks and all_acts_failed['dlnks']:
+            agent_failed_dlnks = [act for act in agents_dlnk_winds[agent_indx] if act in all_acts_failed['dlnks'][agent_indx]]
+            # def label_getter(dlnk):
+            #     # todo: scheduled data vol here is deprecated
+            #     return "g%d,dv %d/%d"%(dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
+
+            def label_getter(dlnk):
+                return "d%d,g%d,dv %d/%d"%(dlnk.window_ID,dlnk.gs_indx,dlnk.scheduled_data_vol,dlnk.data_vol) 
+
+            agent_plot_params = {
+                "plot_start_dt": plot_start_dt,
+                "plot_end_dt": plot_end_dt,
+                # "plot_color": "#0000FF",
+                "include_labels": False,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
+                "base_time_dt": base_time_dt,
+                "time_divisor": time_divisor,
+                "viz_object_vert_bottom_base_offset": 0,
+                "viz_object_rotator_hist": dlnk_rectangle_rotator_hist,
+                "viz_object_rotation_rollover": 2,
+                "label_horz_offset": label_horz_offset,
+                "label_vert_bottom_base_offset": 0.305,
+                "label_vert_spacing": 0.1,
+                "label_rotator_hist": dlnk_label_rotator_hist,
+                "label_rotation_rollover": dlnk_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": dlnk_hatch_pattern if use_hatch_windows_executed else None
+            }
+
+            dlnk_failed_viz_objects = plot_window_schedule(current_axis,agent_failed_dlnks,start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=color_getter)
+            if len(dlnk_failed_viz_objects) > 0:
+                d_fail_obj = dlnk_failed_viz_objects[-1]
+
+        # plot the failed obs
+        if plot_obs and all_acts_failed['obs']:
+            agent_failed_obs = [act for act in agents_obs_winds[agent_indx] if act in all_acts_failed['obs'][agent_indx]]
+            agent_plot_params = {
+                "plot_start_dt": plot_start_dt,
+                "plot_end_dt": plot_end_dt,
+                # "plot_color": "#00FF00",
+                "include_labels": False,
+                "label_fontsize": label_fontsize,
+                "label_fontweight": label_fontweight,
+                "base_time_dt": base_time_dt,
+                "time_divisor": time_divisor,
+                "viz_object_vert_bottom_base_offset": 0,
+                "viz_object_rotator_hist": obs_rectangle_rotator_hist,
+                "viz_object_rotation_rollover": 2,
+                "label_horz_offset": label_horz_offset,
+                "label_vert_bottom_base_offset": 0.05,
+                "label_vert_spacing": 0.1,
+                "label_rotator_hist": obs_label_rotator_hist,
+                "label_rotation_rollover": obs_label_rotation_rollover,
+                "label_horz_divisor": label_horz_divisor,
+                "hatch_pattern": obs_hatch_pattern if use_hatch_windows_executed else None
+            }
+
+            obs_failed_viz_objects = plot_window_schedule(current_axis,agent_failed_obs,start_getter_reg,end_getter_reg,agent_plot_params,label_getter,color_getter=color_getter)
+            if len(obs_failed_viz_objects) > 0:
+                o_fail_obj = obs_failed_viz_objects[-1]
+
         #  if were at the last agentellite ( at the bottom of all the plots), then add X axis labels
         if not plot_indx+1 == num_agents:
             ax = plt.gca()
@@ -525,18 +719,28 @@ def plot_all_agents_acts(
     if o_obj: 
         legend_objects.append(o_obj)
         legend_objects_labels.append(obs_exe_legend_name)
+    if o_fail_obj:
+        legend_objects.append(o_fail_obj)
+        legend_objects_labels.append(obs_fail_legend_name)
     if d_w_obj: 
         legend_objects.append(d_w_obj)
         legend_objects_labels.append(dlnk_choices_legend_name)
     if d_obj: 
         legend_objects.append(d_obj)
         legend_objects_labels.append(dlnk_exe_legend_name)
+    if d_fail_obj:
+        legend_objects.append(d_fail_obj)
+        legend_objects_labels.append(dlnk_fail_legend_name)
     if x_w_obj: 
         legend_objects.append(x_w_obj)
         legend_objects_labels.append(xlnk_choices_legend_name)
     if x_obj: 
         legend_objects.append(x_obj)
         legend_objects_labels.append(xlnk_exe_legend_name)
+    if x_fail_obj:
+        legend_objects.append(x_fail_obj)
+        legend_objects_labels.append(xlnk_fail_legend_name)
+
 
     middle_axes.legend(legend_objects, legend_objects_labels ,bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,fontsize=16)
 
@@ -708,9 +912,9 @@ def plot_energy_usage(
         plt.tick_params(
             axis='y',
             which='both',
-            left='on',
-            right='off',
-            labelleft='on'
+            left=True,
+            right=False,
+            labelleft=True
         )
 
         # set axis length.
@@ -862,9 +1066,9 @@ def plot_data_usage(
         plt.tick_params(
             axis='y',
             which='both',
-            left='on',
-            right='off',
-            labelleft='on'
+            left=True,
+            right=False,
+            labelleft=True
         )
 
         # set axis length.
@@ -934,7 +1138,7 @@ def plot_data_usage(
         savefig(fig_name,format=plot_fig_extension)
 
 
-def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
+def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params,all_downlink_winds =[], gp_replan_freq = None):
 
     plot_start_dt = plot_params['plot_start_dt']
     plot_end_dt = plot_params['plot_end_dt']
@@ -952,6 +1156,9 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
     plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
     include_legend = plot_params.get('include_legend',True)
     
+    start_getter_choices = plot_params.get('start_getter_choices',get_start_original)
+    end_getter_choices = plot_params.get('end_getter_choices',get_end_original)
+
     plot_labels = {
         "aoi": "aoi",
     }
@@ -1001,15 +1208,13 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
             plt.ylabel('%s\n%s\n'%(ylabel,item_id))
         else:
             plt.ylabel('%s\n'%(item_id))
-
-
         # no y-axis labels
         plt.tick_params(
             axis='y',
             which='both',
-            left='on',
-            right='off',
-            labelleft='on'
+            left=True,
+            right=False,
+            labelleft=True
         )
 
         # set axis length.
@@ -1029,6 +1234,191 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
             plt.title(plot_title)
 
         first_item = False
+
+        # ADDING POSSIBLE DOWNLINK WINDOWS (provides context of when last possible comm with GS was)
+        if all_downlink_winds:
+            cur_downlink_winds = all_downlink_winds[plot_indx]
+            agent_plot_params = {
+                "plot_start_dt": plot_start_dt,
+                "plot_end_dt": plot_end_dt,
+                "plot_color": "#BFBFFF",
+                "include_labels": False,
+                "label_rotator_hist": {},
+                "base_time_dt": base_time_dt,
+                "time_divisor": time_divisor,
+                "viz_object_vert_bottom_base_offset": 0,
+                "viz_object_rotator_hist": {},
+                "viz_object_rotation_rollover": 2,
+                "hatch_pattern": None
+            }
+
+            dlnk_viz_objects = plot_window_schedule(current_axis,cur_downlink_winds,start_getter_choices,end_getter_choices,agent_plot_params,label_getter=None,color_getter=None)
+            if len(dlnk_viz_objects) > 0:
+                d_w_obj = dlnk_viz_objects[-1]
+
+
+
+        # ADDING GP REPLAN FREQ BARS (provides context of when last new GP was released)
+        if gp_replan_freq:
+            # gp_replan_freq is assumed to be in seconds
+            num_replans = floor(end_time / (gp_replan_freq/time_divisor))
+            gp_plt_times = [t*gp_replan_freq/time_divisor + start_time for t in range(0,num_replans+1)]
+
+            for gp_time in gp_plt_times:
+                plt.plot([gp_time, gp_time],[vert_min, vert_max],'k--')
+        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_items:
+            ax = plt.gca()
+            plt.setp(ax.get_xticklabels(), visible=False)
+
+    legend_objects = []
+    if aoi_plot: 
+        legend_objects.append(aoi_plot)
+
+    if include_legend:
+        plt.legend(handles=legend_objects ,bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
+    plt.xlabel('Time (%s)'%(time_units))
+
+    # use the last axes to set the entire plot background color
+    if axes:
+        axes.patch.set_facecolor('w')
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)
+
+
+def plot_failures_on_aoi(
+    item_ids_list,
+    all_failures_dicts_list,
+    aoi_curves_by_item_id,
+    plot_params):
+
+    plot_start_dt = plot_params['plot_start_dt']
+    plot_end_dt = plot_params['plot_end_dt']
+    base_time_dt = plot_params['base_time_dt']
+
+    plot_bound_min_aoi_hours = plot_params['plot_bound_min_aoi_hours']
+    plot_bound_max_aoi_hours = plot_params['plot_bound_max_aoi_hours']
+
+    ylabel = plot_params.get('ylabel','Item')
+    plot_title = plot_params.get('plot_title','Activities Plot')
+    plot_size_inches = plot_params.get('plot_size_inches',(12,12))
+    show = plot_params.get('show',False)
+    fig_name = plot_params.get('fig_name','plots/failures_on_aoi_plot.pdf')
+    time_units = plot_params.get('time_units','minutes')
+    plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
+    include_legend = plot_params.get('include_legend',True)
+    
+    label_fontsize = plot_params.get('label_fontsize',7)
+    label_horz_offset = plot_params.get('label_horz_offset',-0.3)
+    label_fontweight = plot_params.get('label_fontweight','normal')
+
+    plot_labels = {
+        "aoi": "aoi",
+    }
+
+    if time_units == 'hours':
+        time_divisor = 3600
+        label_horz_divisor = 60.0
+    if time_units == 'minutes':
+        time_divisor = 60
+        label_horz_divisor = 1
+    
+    start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
+    end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
+
+    num_targs = len(item_ids_list)
+
+    #  make a new figure
+    plt.figure()
+
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+    # print fig.get_size_inches()
+
+    #  these hold the very last plot object of a given type added. Used for legend below
+    aoi_plot = None
+    first_item = True
+
+    num_items = len(item_ids_list)
+
+    # for each agent
+    axes = None
+    already_plotted_list = [] # for failures that are already plotted
+    for  plot_indx, item_id in enumerate (item_ids_list):
+
+        #  make a subplot for each
+        axes = plt.subplot( num_targs,1,plot_indx+1)
+        if plot_indx == floor(num_targs/2):
+            plt.ylabel('%s\n%s\n'%(ylabel,item_id))
+        else:
+            plt.ylabel('%s\n'%(item_id))
+        # no y-axis labels
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left=True,
+            right=False,
+            labelleft=True
+        )
+
+        # set axis length.
+        vert_min = plot_bound_min_aoi_hours
+        vert_max = plot_bound_max_aoi_hours
+        plt.axis((start_time, end_time, vert_min, vert_max))
+
+        current_axis = plt.gca()
+
+        # this_time_divisor = time_divisor/60.0
+        plot_times = [t + start_time for t in aoi_curves_by_item_id[item_id]['x']]
+
+        # the first return value is a handle for our line, everything else can be ignored
+        aoi_plot,*dummy = plt.plot(plot_times,aoi_curves_by_item_id[item_id]['y'], label =  plot_labels["aoi"])
+
+        if first_item:
+            plt.title(plot_title)
+
+        first_item = False
+
+        # STUFF FOR FAILED ACTS
+        sat_indx = plot_indx
+        sat_failures_dict = all_failures_dicts_list[sat_indx] # pull failures just for this sat
+        sat_plot_params = {
+            "plot_start_dt": plot_start_dt,
+            "plot_end_dt": plot_end_dt,
+            "plot_color": 'gray',
+            "include_labels": False,
+            "label_fontsize": label_fontsize,
+            "label_fontweight": label_fontweight,
+            "base_time_dt": base_time_dt,
+            "time_divisor": time_divisor,
+            "viz_object_vert_bottom_base_offset": 0,
+            "viz_object_rotator_hist": {},
+            "viz_object_rotation_rollover": 2,
+            "label_horz_offset": label_horz_offset,
+            "label_vert_bottom_base_offset": 0.1,
+            "label_vert_spacing": 1.1,
+            "label_rotator_hist": {},
+            "label_rotation_rollover": 8,
+            "label_horz_divisor": label_horz_divisor,
+            "hatch_pattern": None
+        }
+        already_plotted_list = plot_failure_label(current_axis,sat_failures_dict,sat_indx,sat_plot_params,already_plotted_list,base_time_dt)
 
         #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
         if not plot_indx+1 == num_items:
@@ -1052,6 +1442,7 @@ def plot_aoi_by_item(item_ids_list,aoi_curves_by_item_id,plot_params):
         plt.show()
     else:
         savefig(fig_name,format=plot_fig_extension)
+
 
 def plot_histogram(
         data,
@@ -1088,7 +1479,7 @@ def plot_histogram(
         if plot_type == 'histogram':
             out_stuff = plt.hist(data_series, bins=num_bins,label=series_label)
         elif plot_type == 'cdf':
-            out_stuff = plt.hist(data_series, bins=num_bins,normed=True,cumulative=True, histtype='step',label=series_label)
+            out_stuff = plt.hist(data_series, bins=num_bins,density=True,cumulative=True, histtype='step',label=series_label)
             # plot the 100% line
             plt.plot([plot_x_range[0],plot_x_range[1]],[1.0,1.0], linestyle=':',color='#663300')
         else:
@@ -1120,6 +1511,182 @@ def plot_histogram(
 
     #  make all the axis labels in the plot fit within the allowed space
     plt.tight_layout()
+
+    if show:
+        plt.show()
+    else:
+        savefig(fig_name,format=plot_fig_extension)
+
+def plot_failures_on_data_usage(
+    sats_ids_list,
+    data_usage,
+    all_failures_dicts_list,
+    plot_params):
+
+    plot_labels = {
+        "d usage": "d usage",
+        "d max": "d max",
+        "d min": "d min",
+        "ecl": "eclipse"
+    }
+
+    plot_start_dt = plot_params['plot_start_dt']
+    plot_end_dt = plot_params['plot_end_dt']
+    base_time_dt = plot_params['base_time_dt']
+    sat_id_order = plot_params['sat_id_order']
+    sats_dmin_Gb = plot_params['sats_dmin_Gb']
+    sats_dmax_Gb = plot_params['sats_dmax_Gb']
+    data_usage_plot_params = plot_params['failures_on_data_usage_plot_params']
+
+    plot_title = plot_params.get('plot_title','Activities Plot')
+    plot_size_inches = plot_params.get('plot_size_inches',(12,12))
+    show = plot_params.get('show',False)
+    fig_name = plot_params.get('fig_name','plots/failures_on_data_plot.pdf')
+    time_units = plot_params.get('time_units','minutes')
+    plot_fig_extension = plot_params.get('plot_fig_extension','pdf')
+
+    label_fontsize = plot_params.get('label_fontsize',7)
+    label_horz_offset = plot_params.get('label_horz_offset',-0.3)
+    label_fontweight = plot_params.get('label_fontweight','normal')
+    
+
+    if time_units == 'hours':
+        time_divisor = 3600.0
+        label_horz_divisor = 60.0
+    if time_units == 'minutes':
+        time_divisor = 60.0
+        label_horz_divisor = 1
+
+    
+    start_time = (plot_start_dt-base_time_dt).total_seconds()/time_divisor
+    end_time = (plot_end_dt-base_time_dt).total_seconds()/time_divisor
+
+    num_sats = len(sats_ids_list)
+
+    #  make a new figure
+    plt.figure()
+
+    global_font_size = plot_params.get('global_font_size',20)
+    legend_font_size = plot_params.get('legend_font_size',12)
+    rcParams.update({'font.size': global_font_size})
+    # plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
+    # plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+    # plt.rc('axes', labelsize=BIGGER_SIZE)    # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=BIGGER_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=legend_font_size)    # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+    #  create subplots for satellites
+    fig = plt.gcf()
+    fig.set_size_inches( plot_size_inches)
+    # print fig.get_size_inches()
+
+    #  these hold the very last plot object of a given type added. Used for legend below
+    d_usage_plot = None
+    d_max_plot = None
+    d_min_plot = None
+
+    # for each agent
+    first_sat = True
+    axes = None
+    already_plotted_list = []
+    for  plot_indx, sat_id in enumerate (sats_ids_list):
+        #  get the index for this ID
+        sat_indx = sat_id_order.index(str(sat_id))
+
+        #  make a subplot for each
+        axes = plt.subplot( num_sats,1,plot_indx+1)
+        if plot_indx == floor(num_sats/2):
+            plt.ylabel('Satellite Index,\ndata storage (Gb)\n\n%d\n'%(sat_indx))
+            middle_axes = axes
+        else:
+            plt.ylabel('%d\n'%(sat_indx))
+
+
+        # no y-axis labels
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left=True,
+            right=False,
+            labelleft=True
+        )
+
+        # set axis length.
+        vert_min = data_usage_plot_params['plot_bound_d_min_Gb_delta']+sats_dmin_Gb[sat_indx]
+        vert_max = data_usage_plot_params['plot_bound_d_max_Gb_delta']+sats_dmax_Gb[sat_indx]
+        plt.axis((start_time, end_time, vert_min, vert_max))
+
+        current_axis = plt.gca()
+
+        # the first return value is a handle for our line, everything else can be ignored
+        if data_usage:
+            this_time_divisor = time_divisor/60.0
+            d_time = [(d_t+start_time)/this_time_divisor for d_t in data_usage['time_mins'][sat_indx]]
+            # adjust from Mb to Gb
+            sat_data_usage_Gb = [num/1000 for num in data_usage['d_sats'][sat_indx]]
+            d_usage_plot,*dummy = plt.plot(d_time,sat_data_usage_Gb, label =  plot_labels["d usage"])
+
+        if data_usage_plot_params['show_min_max_bounds']:
+            d_min = sats_dmin_Gb[sat_indx]
+            d_max = sats_dmax_Gb[sat_indx]
+            d_max_plot,*dummy = plt.plot([start_time,end_time],[d_max,d_max], linestyle=':',label =  plot_labels["d max"])
+            d_min_plot,*dummy = plt.plot([start_time,end_time],[d_min,d_min], linestyle=':',label =  plot_labels["d min"])
+
+
+        # STUFF FOR FAILED ACTS
+        sat_failures_dict = all_failures_dicts_list[sat_indx] # pull failures just for this sat
+        sat_plot_params = {
+            "plot_start_dt": plot_start_dt,
+            "plot_end_dt": plot_end_dt,
+            "plot_color": 'gray',
+            "include_labels": False,
+            "label_fontsize": label_fontsize,
+            "label_fontweight": label_fontweight,
+            "base_time_dt": base_time_dt,
+            "time_divisor": time_divisor,
+            "viz_object_vert_bottom_base_offset": 0,
+            "viz_object_rotator_hist": {},
+            "viz_object_rotation_rollover": 2,
+            "label_horz_offset": label_horz_offset,
+            "label_vert_bottom_base_offset": 0.1,
+            "label_vert_spacing": 1.1,
+            "label_rotator_hist": {},
+            "label_rotation_rollover": 8,
+            "label_horz_divisor": label_horz_divisor,
+            "hatch_pattern": None
+        }
+        already_plotted_list = plot_failure_label(current_axis,sat_failures_dict,sat_indx,sat_plot_params,already_plotted_list,base_time_dt)
+        
+
+
+        #  if were at the last satellite ( at the bottom of all the plots), then add X axis labels
+        if not plot_indx+1 == num_sats:
+            ax = plt.gca()
+            plt.setp(ax.get_xticklabels(), visible=False)
+
+        if first_sat:
+            plt.title(plot_title)
+
+        first_sat = False
+
+
+    legend_objects = []
+    if d_usage_plot: 
+        legend_objects.append(d_usage_plot)
+    if d_max_plot: 
+        legend_objects.append(d_max_plot)
+    if d_min_plot: 
+        legend_objects.append(d_min_plot)
+
+    middle_axes.legend(handles=legend_objects ,bbox_to_anchor=(1.005, 1), loc=2, borderaxespad=0.,fontsize=16)
+
+    plt.xlabel('Time since %s (%s)'%(base_time_dt.isoformat(),time_units))
+
+    # use the last axes to set the entire plot background color
+    if axes:
+        axes.patch.set_facecolor('w')
 
     if show:
         plt.show()

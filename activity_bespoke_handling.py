@@ -11,20 +11,14 @@ from functools import lru_cache
 from circinus_tools import debug_tools
 
 class ActivityTimingHelper:
-    SUPPORTED_ORBIT_PROP_INPUTS_VERSIONS = ['0.8']
 
     def __init__(self,activity_params,sat_ids_by_orbit_name,sat_id_order,orbit_prop_inputs_version):
         self.sat_ids_by_orbit_name = sat_ids_by_orbit_name
         self.activity_params = activity_params
-        self.activity_params_option = activity_params['params_option']
         self.sat_id_order = sat_id_order
 
         self.last_sat_id_by_orbit_name = {orbit_name:sats[-1] for orbit_name,sats in sat_ids_by_orbit_name.items()}
         self.first_sat_id_by_orbit_name = {orbit_name:sats[0] for orbit_name,sats in sat_ids_by_orbit_name.items()}
-
-        #  this code very much depends on the structure of the orbit prop inputs json file, so we want to do a quick version check
-        if not orbit_prop_inputs_version in self.SUPPORTED_ORBIT_PROP_INPUTS_VERSIONS:
-            raise NotImplementedError
 
     def get_sat_orbit_name(self,sat_id):
         for orbit_name,sats in self.sat_ids_by_orbit_name.items():
@@ -176,7 +170,13 @@ class ActivityTimingHelper:
             act_transition_type = self.get_xlnk_transition_type(act1,act2,sat_indx1)
 
         # get the transition time requirement between these activities
-        transition_time_req_s = self.activity_params['transition_time_s'][trans_context][trans_activities_str][act_transition_type][self.activity_params_option]
+        if trans_context=='intra-sat':
+            if trans_activities_str=='xlnk-xlnk':
+                transition_time_req_s = self.activity_params['transition_time_s'][trans_context][trans_activities_str][act_transition_type]
+            else:
+                transition_time_req_s = self.activity_params['transition_time_s'][trans_context][trans_activities_str]
+        else:
+            transition_time_req_s = self.activity_params['transition_time_s'][trans_context] 
 
         return transition_time_req_s
 
