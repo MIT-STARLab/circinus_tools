@@ -177,8 +177,8 @@ def expand_planewise_sat_defs(sat_orbital_elems):
                         "RAAN_deg"      : elems['plane_def']['RAAN_deg'],
                         "arg_per_deg"   : elems['plane_def']['arg_per_deg'],
                         "M_deg"         : m_deg
-                    },
-                    "propagation_method" : elems['propagation_method']
+                    }
+                    #"propagation_method" : elems['propagation_method']
                 }
                 expanded_elements.append(new_entry)
         elif elems['def_type'] == 'walker':

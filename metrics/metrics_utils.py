@@ -67,8 +67,17 @@ def get_all_sats_cmd_update_hist(sim_sats,gs_agents,gs_id_ignore_list):
     """ get command update history for all satellites
     
     for each satellite, gets the merged command update history (over all ground stations) from the satellite simulation object
-    :returns: [description]
-    :rtype: {[type]}
+    :param sim_sats: The list of Satellites, ordered by index
+    :type sim_sats: list
+
+    :param gs_agents: The list of Ground Stations, ordered by index
+    :type gs_agents: list
+
+    :param gs_id_ignore_list: The list of ground station ids to ignore
+    :type gs_id_ignore_list: list
+
+    :returns: The combined command update histogram of all satellites
+    :rtype: list
     """
 
     all_sats_update_hist = []
@@ -76,6 +85,23 @@ def get_all_sats_cmd_update_hist(sim_sats,gs_agents,gs_id_ignore_list):
     for sim_sat in sim_sats:
         cmd_update_hist = sim_sat.get_merged_cmd_update_hist(gs_agents,gs_id_ignore_list)
         all_sats_update_hist.append (cmd_update_hist)
+
+    return all_sats_update_hist
+
+def get_all_sats_cmd_update_hist_removed(sat_in_index_order, post_run_data):
+    """
+    get command update history for all satellites
+
+    :param sat_in_index_order: The list of satellite ids in index order
+    :type sat_in_index_order: list
+    :param post_run_data: Post run data of all satellites
+    :type post_run_data: dict
+    :return: Combined command update history of all satellites
+    :rtype: list
+    """
+    all_sats_update_hist = []
+    for sat_id in sat_in_index_order:
+        all_sats_update_hist.append(post_run_data[sat_id]['cmd_update_hist'])
 
     return all_sats_update_hist
 
@@ -103,5 +129,41 @@ def get_all_sats_tlm_update_hist(sim_sats,gs_agents,gs_id_ignore_list,end_time_g
         #  merge across all ground stations
         #  By merging across all ground stations, we get a recording of when the full ground station network last heard from the satellite, which we assume is a good proxy for when satellite telemetry was last updated on the ground. ( note the underlying assumption that  telemetry arriving at any ground station is equally as valid as any other one)
         all_sats_update_hist. append ( merge_update_histories ( update_hists,end_time_getter(sim_sat)))
+
+    return all_sats_update_hist
+
+
+def get_all_sats_tlm_update_hist_removed(sat_id_order, gs_agents, gs_id_ignore_list, postRunData):
+    """ get telemetry update history for all satellites
+
+    for each satellite, gets the update histories for each ground station ( from the ground station simulation object), then merges them to form a single global telemetry update history for the full ground station network
+    :param sat_id_order: The ordered list of satellite ids
+    :type sat_id_order: list
+    :param gs_agents: The ordered list of Ground Stations by index
+    :type: list
+    :param gs_id_ignore_list: List of gs ids to ignore
+    :type: list
+    :param postRunData: The dictionary mapping sat_ids to post run data
+    :type: dict
+    :returns: The combined telemetry update history
+    :rtype: list
+    """
+
+    all_sats_update_hist = []
+
+    for sat_id in sat_id_order:
+        update_hists = []
+
+        # grab the update time histories from all the ground stations, for this satellite
+        for sim_gs in gs_agents:
+            # if we're ignoring this ground station, then continue
+            if sim_gs.ID in gs_id_ignore_list:
+                continue
+
+            update_hists.append(sim_gs.get_sat_tlm_update_hist(sat_id))
+
+        #  merge across all ground stations
+        #  By merging across all ground stations, we get a recording of when the full ground station network last heard from the satellite, which we assume is a good proxy for when satellite telemetry was last updated on the ground. ( note the underlying assumption that  telemetry arriving at any ground station is equally as valid as any other one)
+        all_sats_update_hist.append(merge_update_histories(update_hists, postRunData[sat_id]['end_time']))
 
     return all_sats_update_hist

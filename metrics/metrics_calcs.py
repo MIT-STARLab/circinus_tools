@@ -109,6 +109,7 @@ class MetricsCalcs():
 
         # possible routes by observation
         poss_rts_by_obs = self.get_routes_by_obs(possible_routes)
+
         exec_rts_by_obs = self.get_routes_by_obs (executed_routes)
 
         dlnk_dv_check = {}

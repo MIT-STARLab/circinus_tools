@@ -39,7 +39,14 @@ class PyomoMILPScheduling:
             # solver.options['Cuts'] = 0
             # solver.options['MIPFocus'] = 1 #for finding feasible solutions quickly
             # solver.options['MIPFocus'] = 3 #for lowering the mip gap
-
+        elif self.solver_name == 'cbc':
+            # Options: see http://manpages.ubuntu.com/manpages/bionic/man1/cbc.1.html#options
+            print("SOLVER OPTIONS===========================\n")
+            print(self.solver_params)
+            print("SOLVER OPTIONS END=======================\n")
+            solver.options['allow'] = self.solver_params['optimality_gap'] # MIP Gap, or allowable gap
+            solver.options['integerT'] = self.solver_params['integer_feasibility_tolerance'] # integer tolerance
+            solver.options['sec'] = self.solver_params['max_runtime_s'] #seconds
         elif self.solver_name == 'cplex':
             solver.options['timelimit'] = self.solver_params['max_runtime_s']
 
